@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ExperimentGUI</class>
+ <widget class="QWidget" name="ExperimentGUI">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QRadioButton" name="Manual_mode">
+     <property name="text">
+      <string>Manual Mode</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QRadioButton" name="Automatic_mode">
+     <property name="text">
+      <string>Automatic Mode</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QRadioButton" name="Gamepad_control">
+     <property name="text">
+      <string>Gamepad Control</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="Vacuum">
+     <property name="text">
+      <string>Vacuum On/Off</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QListWidget" name="State_info"/>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
