@@ -13,37 +13,95 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="3" column="2">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Force Torque Threshold</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
     <widget class="QRadioButton" name="Manual_mode">
      <property name="text">
       <string>Manual Mode</string>
      </property>
     </widget>
    </item>
-   <item>
+   <item row="1" column="0">
     <widget class="QRadioButton" name="Automatic_mode">
      <property name="text">
       <string>Automatic Mode</string>
      </property>
     </widget>
    </item>
-   <item>
-    <widget class="QRadioButton" name="Gamepad_control">
-     <property name="text">
-      <string>Gamepad Control</string>
-     </property>
-    </widget>
+   <item row="6" column="0" colspan="4">
+    <widget class="QListWidget" name="State_info"/>
    </item>
-   <item>
+   <item row="5" column="0">
     <widget class="QCheckBox" name="Vacuum">
      <property name="text">
       <string>Vacuum On/Off</string>
      </property>
     </widget>
    </item>
-   <item>
-    <widget class="QListWidget" name="State_info"/>
+   <item row="3" column="0">
+    <widget class="QRadioButton" name="Gamepad_control">
+     <property name="text">
+      <string>Gamepad Control</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1" rowspan="2">
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="Line" name="line_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="Line" name="line_3">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="Line" name="line_4">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="3">
+    <widget class="QLineEdit" name="Ft_threshold"/>
+   </item>
+   <item row="1" column="2">
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>Speed Scalar</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="3">
+    <widget class="QLineEdit" name="Speed_scalar"/>
+   </item>
+   <item row="0" column="2">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Error Message</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="3">
+    <widget class="QLineEdit" name="Error_msg"/>
    </item>
   </layout>
  </widget>

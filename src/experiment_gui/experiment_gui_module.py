@@ -62,8 +62,12 @@ class ExperimentGUI(Plugin):
 	#self._proxy_model=message_proxy_model.MessageProxyModel()
 	#self._rospack=rospkg.RosPack()
 	#console=console_widget.ConsoleWidget(self._proxy_model,self._rospack)
-	
-	
+	self.speed_scalar=1
+	self.ft_threshold=[300,300,300,300,300,300]
+	self._widget.Speed_scalar.setInputMask("9")
+	self._widget.Ft_threshold.setInputMask("9")
+	self._widget.Speed_scalar.setText("1")
+	self._widget.Ft_threshold.setText("300")
         # Get path to UI file which should be in the "resource" folder of this package
         ui_file = os.path.join(rospkg.RosPack().get_path('experiment_gui'), 'resource', 'experiment_gui.ui')
         # Extend the widget with all attributes and children from UI file
@@ -90,6 +94,34 @@ class ExperimentGUI(Plugin):
         self._widget.Gamepad_control.pressed.connect(self._handle_controller_state_change)
         self._widget.Automatic_mode.pressed.connect(self._handle_controller_state_change)
         self._widget.Manual_mode.pressed.connect(self._handle_controller_state_change)
+	self._widget.Speed_scalar.modified.connect(self._change_values)
+	self._widget.Ft_threshold.modified.connect(self._change_values)
+
+    def _change_values(self):
+	if enter_error:
+	    enter_error=False
+	    self._widget.Error_msg.setText("")
+	if self._widget.Speed_scalar.modified():
+	    if(self._widget.Speed_scalar.acceptableInput()):
+		self.speed_scalar=int(self._widget.Speed_scalar.text())
+		#add in setter function
+	    
+	     else:
+		self._widget.Error_msg.setText("Speed Scalar Value not Acceptable")
+		enter_error=True
+	     self._widget.Speed_scalar.setModified(False)
+
+	if self._widget.Ft_threshold.modified():
+	    if(self._widget.Ft_threshold.acceptableInput()):
+		for i in self.ft_threshold:
+		    self.ft_threshold[i]=int(self._widget.Ft_threshold.text())
+	    	#add in setter function
+	    else:
+		self._widget.Error_msg.setText("Force Threshold Value not Acceptable")
+		enter_error=True
+	    self._widget.Ft_threshold.setModified(False)
+
+
 
     def _handle_vacuum_change(self):
         if self._widget.Vacuum.isChecked():
@@ -106,11 +138,18 @@ class ExperimentGUI(Plugin):
 
     def _handle_controller_state_change(self):
         if self._widget.Gamepad_control.isDown():
-	    print "Gamepad is in control"
+	    self.set_controller_mode(2)
+
 	if self._widget.Automatic_mode.isDown():
 	    print "Fully autonomous motion selected"
 	if self._widget.Manual_mode.isDown():
 	    print "Manual Mode selected use Teach Pendant to Control"
+
+    def set_controller_mode(self, mode):
+	req=SetControllerModeRequest()
+    	req.mode.mode=mode
+    	req.speed_scalar=self.speed_scalar
+    	req.force_torque_stop_threshold=self.ft_threshold
 
     def callback(self,data):
         #self._widget.State_info.append(data.mode)
