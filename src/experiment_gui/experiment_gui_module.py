@@ -13,6 +13,7 @@ from rpi_arm_composites_manufacturing_abb_egm_controller.srv import \
     SetControllerMode, SetControllerModeRequest, SetControllerModeResponse
 from rqt_console import console_widget
 from rqt_console import message_proxy_model
+
 		
 
 freeBytes=QSemaphore(100)
