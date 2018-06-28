@@ -52,12 +52,15 @@
   <build_depend>rospy</build_depend>
   <build_depend>rqt_gui</build_depend>
   <build_depend>rqt_gui_py</build_depend>
+  <build_depend>arm_vision_moveit</build_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>rqt_gui</build_export_depend>
   <build_export_depend>rqt_gui_py</build_export_depend>
+  <exec_depend>arm_vision_moveit</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>rqt_gui</exec_depend>
   <exec_depend>rqt_gui_py</exec_depend>
+  
 
 
   <!-- The export tag contains other, unspecified, tags -->
