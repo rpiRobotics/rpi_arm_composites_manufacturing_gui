@@ -2,7 +2,7 @@ from distutils.core import setup
 from catkin_pkg.python_setup import generate_distutils_setup
   
 d = generate_distutils_setup(
-    packages=['experiment_gui'],
+    packages=['rpi_arm_composites_manufacturing_gui'],
     package_dir={'': 'src'},
 )
 

@@ -17,11 +17,11 @@ from rqt_console import console_widget
 from rqt_console import message_proxy_model
 
 		
-
+'''
 freeBytes=QSemaphore(100)
 usedBytes=QSemaphore()
 consoleData=collections.deque(maxlen=200)
-
+'''
 class VacuumConfirm(QWidget):
     def __init__(self):
         super(VacuumConfirm,self).__init__()
@@ -89,7 +89,7 @@ class ExperimentGUI(Plugin):
 		# tell from pane to pane.
 		if context.serial_number() > 1:
 		    self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % context.serial_number()))
-	   
+
 		context.add_widget(self._widget)
 
 		#####consoleThread=ConsoleThread(self._widget.State_info)
@@ -114,64 +114,78 @@ class ExperimentGUI(Plugin):
 		    
 		self._widget.Speed_scalar.textEdited.connect(self._change_values)
 		self._widget.Ft_threshold.textEdited.connect(self._change_values)
-		self._widget.Home_button.pressed.connect(self._reset_position)
-		self._widget.Move_to_panel.pressed.connect(self._move_to_panel)
+		self._widget.git fetch origin
+		git reset --hard origin/master)
 		self._widget.Panel_pickup.pressed.connect(self._pickup_panel)
 
 	def _reset_position(self):
+		rospy.loginfo("Resetting Robot Position")
 		self.Vision_MoveIt.reset_pos()
+		rospy.loginfo("Reset Complete")
 		self.above_panel=False
 	
 	def _move_to_panel(self):
+		rospy.loginfo("Move to Panel command given")
 		self.Vision_MoveIt.camera_read()
 		self.Vision_MoveIt.set_positions()
+		rospy.loginfo("Camera read and positions set")
 		#self.armcontroller.set_controller(4,self.speed_scalar,self.ft_threshold)
 		
 		plan1=self.Vision_MoveIt.generate_plan(1)
+		rospy.loginfo("Plans generated, asking for confirmation of plan")
 		messagewindow=VacuumConfirm()
 		reply = QMessageBox.question(messagewindow, 'Path Verification', 
 		             'Is MoveIt Motion Path Acceptable?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 		if reply==QMessageBox.Yes:
-			print("Path Accepted, Proceeding to Panel")
+			rospy.loginfo("Path Accepted, Proceeding to Panel")
 			self.Vision_MoveIt.execute_plans(plan1)
 			self.above_panel=True
 		else:
-			print("Path Rejected, Press Move Above Panel again to retry")
+			rospy.logerr("Path Rejected, Press Move Above Panel again to retry")
         
         
 
 	def _pickup_panel(self):
 		if(self.above_panel):
+			rospy.loginfo("Pickup Panel Command given")
 			#self.armcontroller.set_controller(4,self.speed_scalar,self.ft_threshold)
 			'''if(self.speed_scalar>0.4):
 				self._widget.Error_msg.setText("Speed Scalar Value is too High for Pickup Operation")
 				return
 			'''
 			plan2=self.Vision_MoveIt.generate_plan(2)
+			rospy.loginfo("Generating Pickup plan")
 			self.Vision_MoveIt.execute_plans(plan2)
+			rospy.loginfo("Finished lowering robot")
 			#self.armcontroller.set_controller(4,self.speed_scalar,[])
+
 			self.armcontroller.set_vacuum(1)
 			self._widget.Vacuum.setCheckState(True)
 			rospy.sleep(1)
 			time.sleep(1) 
 			plan3=self.Vision_MoveIt.generate_plan(3)
+			rospy.loginfo("Generated Raise plan")
 			self.Vision_MoveIt.execute_plans(plan3)
+			rospy.loginfo("Finished raising panel")
 		else:
-			self._widget.Error_msg.setText("Not above Panel")
-			print("You must move above Panel before asking to pickup")
+			#self._widget.Error_msg.setText("Not above Panel")
+			rospy.logerr("You must move above Panel before asking to pickup")
 
 	def _change_values(self):
 	
 	
 		if self._widget.Speed_scalar.isModified():
 			if(self._widget.Speed_scalar.hasAcceptableInput()):
+
 				self.speed_scalar=float(self._widget.Speed_scalar.text())
+				rospy.loginfo("Speed scalar value modified to %f", self.speed_scalar)
 				#add in setter function
 				self.change_controller_state(self.mode,self.speed_scalar,self.ft_threshold)
 				self._widget.Error_msg.setText("")
 				    
 			else:
-				self._widget.Error_msg.setText("Speed Scalar Value not Acceptable")
+				rospy.logerr("Speed scalar value not accepted, new value needed")
+				#self._widget.Error_msg.setText("Speed Scalar Value not Acceptable")
 				enter_error=True
 				self._widget.Speed_scalar.setModified(False)
 
@@ -186,11 +200,13 @@ class ExperimentGUI(Plugin):
 				for i in range(len(self.ft_threshold)):
 					self.ft_threshold[i]=int(self._widget.Ft_threshold.text())
 					#add in setter function
+				rospy.loginfo("Force Threshold value modified to %i", self.ft_threshold[0])
 				self.change_controller_state(self.mode,self.speed_scalar,self.ft_threshold)
 				self._widget.Error_msg.setText("")
 				
 			else:
-				self._widget.Error_msg.setText("Force Threshold Value not Acceptable")
+				rospy.logerr("Force Threshold value not accepted, new value needed")
+				#self._widget.Error_msg.setText("Force Threshold Value not Acceptable")
 		
 				self._widget.Ft_threshold.setModified(False)
 		    
@@ -198,6 +214,7 @@ class ExperimentGUI(Plugin):
 
 	def _handle_vacuum_change(self):
 		if self._widget.Vacuum.isChecked():
+			rospy.loginfo("GUI activated Vacuum")
 			self.armcontroller.set_vacuum(1)
 	    
 		else:
@@ -205,17 +222,17 @@ class ExperimentGUI(Plugin):
 			reply = QMessageBox.question(messagewindow, 'Release Vacuum?', 
                  'Shutdown Vacuum?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 			if reply==QMessageBox.Yes:
-				print("Vacuum shutdown")
+				rospy.loginfo("Vacuum shutdown from GUI")
 				self.armcontroller.set_vacuum(0)
 			else:
 				self._widget.Vacuum.setCheckState(True)
-				print("Vacuum shutdown cancelled")
+				rospy.loginfo("Vacuum shutdown cancelled from GUI")
 
 	def _handle_controller_state_change(self, tabIndex):
 		#print tabIndex
 		if tabIndex==0:
 			
-			print "Manual Mode set"
+			#print "Manual Mode set"
 		if tabIndex==1:
 			self.change_controller_state(4,self.speed_scalar,self.ft_threshold) 
 		if tabIndex==2:

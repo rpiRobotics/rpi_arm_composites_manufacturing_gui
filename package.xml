@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>experiment_gui</name>
+  <name>rpi_arm_composites_manufacturing_gui</name>
   <version>0.0.0</version>
   <description>The experiment GUI package</description>
 

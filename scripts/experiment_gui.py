@@ -2,9 +2,9 @@
 
 import sys
 
-from experiment_gui.experiment_gui_module import ExperimentGUI
+from rpi_arm_composites_manufacturing_gui.experiment_gui_module import ExperimentGUI
 from rqt_gui.main import Main
 
-plugin = 'experiment_gui'
+plugin = 'rpi_arm_composites_manufacturing_gui'
 main = Main(filename=plugin)
 sys.exit(main.main(standalone=plugin))
