@@ -4,6 +4,7 @@ import rospkg
 import collections
 import time
 import sys
+import subprocess
 
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
@@ -147,7 +148,7 @@ class ExperimentGUI(Plugin):
         #rospy.init_node('collision_checker','move_group_python_interface_tutorial', anonymous=True)
         super(ExperimentGUI, self).__init__(context)
         # Give QObjects reasonable names
-        self.plans=['Starting Position','Pickup Prepare','Pickup Lower','Pickup Grab','Pickup Raise','Transport Payload','Place Lower','Place Set','Place Raise']
+        self.plans=['Starting Position','Pickup Prepare','Pickup Lower','Pickup Grab','Pickup Raise','Transport Payload','Place Panel and Lift']
         self.setObjectName('MyPlugin')
 
         # Process standalone plugin command-line arguments
@@ -183,7 +184,7 @@ class ExperimentGUI(Plugin):
         self.overheadcameraled.setDisabled(True)  # Make the led non clickable
         self.grippercameraled=LEDIndicator()
         self.grippercameraled.setDisabled(True)  # Make the led non clickable
-
+        self.process_controller=ProcessController()
 
 
         self.mode=0
@@ -228,7 +229,8 @@ class ExperimentGUI(Plugin):
 
         #####consoleThread.start()
         self.rviz_starter=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'rviz_starter.py')
-
+        self.reset_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Reset_Start_pos_wason2.py')
+        self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_YC.py')
         # Add widget to the user interface
         #context.add_widget(console)
             #context.add_widget(rqt_console)
@@ -240,6 +242,14 @@ class ExperimentGUI(Plugin):
 
         self._runscreen.planList.item(0).setSelected(True)
         self.planListIndex=0
+        self._runscreen.vacuum.setText("OFF")
+        self._runscreen.panel.setText("Detached")
+        self._runscreen.panelTag.setText("Not Localized")
+        self._runscreen.nestTag.setText("Not Localized")
+        self._runscreen.overheadCamera.setText("OFF")
+        self._runscreen.gripperCamera.setText("OFF")
+        self._runscreen.forceSensor.setText("Biased to 0")
+        self._runscreen.pressureSensor.setText("[0,0,0]")
         """
         self.above_panel=False
         self._widget.Speed_scalar.setInputMask("9.99")
@@ -264,7 +274,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.previousPlan.pressed.connect(self._previousPlan)
         self._errordiagnosticscreen.openDataPlot.pressed.connect(self._open_data_plot)
         self._errordiagnosticscreen.backToRun.pressed.connect(self._to_run_screen)
-
+        self._errordiagnosticscreen.resetToHome.pressed.connect(self._reset_position)
 #        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_advanced_options)
 
     def led_change(self,led):
@@ -284,8 +294,8 @@ class ExperimentGUI(Plugin):
         #self.rosGraph.show()
         #self.rosGraph.exec_()
 
-    def _open_login_prompt(self):
-        os.system('python ' +self.rviz_starter)
+    def _open_rviz_prompt(self):
+        subprocess.Popen('python', self.rviz_starter)
 #    def _open_advanced_options(self):
 #        main = Main()
 #        sys.exit(main.main(sys.argv, standalone='rqt_rviz/RViz', plugin_argument_provider=add_arguments))
@@ -294,17 +304,104 @@ class ExperimentGUI(Plugin):
             self.planListIndex=0
         else:
             self.planListIndex+=1
-        self._runscreen.planList.item(self.planListIndex).setSelected(True)
 
+        if(self.planListIndex==0):
+            subprocess.Popen('python', self.reset_code)
+            self._runscreen.vacuum.setText("OFF")
+            self._runscreen.panel.setText("Detached")
+            self._runscreen.panelTag.setText("Not Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("Biased to 0")
+            self._runscreen.pressureSensor.setText("[0,0,0]")
+        elif(self.planListIndex==1):
+
+            self.process_controller.pickup_prepare('leeward_mid_panel')
+            self._runscreen.vacuum.setText("OFF")
+            self._runscreen.panel.setText("Detached")
+            self._runscreen.panelTag.setText("Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("ON")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("ON")
+            self._runscreen.pressureSensor.setText("[0,0,0]")
+        elif(self.planListIndex==2):
+            self.process_controller.pickup_lower()
+            self._runscreen.vacuum.setText("OFF")
+            self._runscreen.panel.setText("Detached")
+            self._runscreen.panelTag.setText("Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("ON")
+            self._runscreen.pressureSensor.setText("[0,0,0]")
+        elif(self.planListIndex==3):
+            self.process_controller.pickup_grab()
+            self._runscreen.vacuum.setText("ON")
+            self._runscreen.panel.setText("Attached")
+            self._runscreen.panelTag.setText("Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("ON")
+            self._runscreen.pressureSensor.setText("[1,1,1]")
+        elif(self.planListIndex==4):
+            self.process_controller.pickup_raise()
+            self._runscreen.vacuum.setText("ON")
+            self._runscreen.panel.setText("Attached")
+            self._runscreen.panelTag.setText("Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("OFF")
+            self._runscreen.pressureSensor.setText("[1,1,1]")
+        elif(self.planListIndex==5):
+            self.process_controller.transport_payload()
+            self.process_controller.pickup_raise()
+            self._runscreen.vacuum.setText("ON")
+            self._runscreen.panel.setText("Attached")
+            self._runscreen.panelTag.setText("Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("OFF")
+            self._runscreen.pressureSensor.setText("[1,1,1]")
+        elif(self.planListIndex==6):
+            subprocess.Popen('python', self.YC_place_code)
+            self.process_controller.pickup_raise()
+            self._runscreen.vacuum.setText("OFF")
+            self._runscreen.panel.setText("Detached")
+            self._runscreen.panelTag.setText("Localized")
+            self._runscreen.nestTag.setText("Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("ON")
+            self._runscreen.forceSensor.setText("ON")
+            self._runscreen.pressureSensor.setText("[0,0,0]")
+
+        self._runscreen.planList.item(self.planListIndex).setSelected(True)
+        self._open_rviz_prompt()
 
     def _previousPlan(self):
         print "Not Implemented yet"
 
     def _reset_position(self):
-        rospy.loginfo("Resetting Robot Position")
-        #self.Vision_MoveIt.reset_pos()
-        rospy.loginfo("Reset Complete")
-        self.above_panel=False
+        reply = QMessageBox.question(messagewindow, 'Path Verification',
+                     'Proceed to Reset Position', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply==QMessageBox.Yes:
+            self.planListIndex=0
+            self._runscreen.planList.item(self.planListIndex).setSelected(True)
+            subprocess.Popen('python', self.reset_code)
+            self._runscreen.vacuum.setText("OFF")
+            self._runscreen.panel.setText("Detached")
+            self._runscreen.panelTag.setText("Not Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("Biased to 0")
+            self._runscreen.pressureSensor.setText("[0,0,0]")
+        else:
+            rospy.loginfo("Reset Rejected")
 	
     def _move_to_panel(self):
         rospy.loginfo("Move to Panel command given")
@@ -429,26 +526,33 @@ class ExperimentGUI(Plugin):
 
     def callback(self,data):
         #self._widget.State_info.append(data.mode)
-	
+        if(self.stackedWidget.currentIndex()==2):
+            if(self.count>10):
+            #stringdata=str(data.mode)
+            #freeBytes.acquire()
+            #####consoleData.append(str(data.mode))
+                self._errordiagnosticscreen.State_info.addItem(str(data.joint_position))
+                self.count=0
+
+                #print data.joint_position
+
+            self.count+=1
+            #self._widget.State_info.scrollToBottom()
+            #usedBytes.release()
+            #self._data_array.append(stringdata)
+            #print self._widget.State_info.count()
+            if(self._widget.State_info.count()>200):
+
+                item=self._widget.State_info.takeItem(0)
+                #print "Hello Im maxed out"
+                del item
         if(self.count>10):
-        #stringdata=str(data.mode)
-        #freeBytes.acquire()
-        #####consoleData.append(str(data.mode))
-            self._widget.State_info.addItem(str(data.joint_position))
             self.count=0
-
-            #print data.joint_position
-	
+            if(data.ft_wrench_valid=="False"):
+                self.stackedWidget.setCurrentIndex(0)
+                self.led_change(self.robotconnectionled)
+                self.led_change(self.forcetorqueled)
         self.count+=1
-        #self._widget.State_info.scrollToBottom()
-        #usedBytes.release()
-        #self._data_array.append(stringdata)
-        #print self._widget.State_info.count()
-        if(self._widget.State_info.count()>200):
-
-            item=self._widget.State_info.takeItem(0)
-            #print "Hello Im maxed out"
-            del item
 
             #if(len(self._data_array)>10):
         #	for x in self._data_array:
