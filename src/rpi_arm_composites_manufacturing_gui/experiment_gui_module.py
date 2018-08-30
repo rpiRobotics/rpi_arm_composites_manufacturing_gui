@@ -22,6 +22,7 @@ from rpi_arm_composites_manufacturing_abb_egm_controller.msg import ControllerSt
 from rqt_console import console_widget
 from rqt_console import message_proxy_model
 from rqt_graph import ros_graph
+import rosservice
 
 
 
@@ -265,20 +266,21 @@ class ExperimentGUI(Plugin):
         self._widget.Panel_pickup.pressed.connect(self._pickup_panel)
         """
         rospy.Subscriber("controller_state", controllerstate, self.callback)
-        self._welcomescreen.openConfig.clicked.connect(lambda: self.led_change(self.robotconnectionled))
-        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_login_prompt)
+        self._welcomescreen.openConfig.clicked.connect(lambda: self.led_change(self.robotconnectionled,False))
+        #self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_login_prompt)
         self._welcomescreen.toRunScreen.pressed.connect(self._to_run_screen)
         self._runscreen.backToWelcome.pressed.connect(self._to_welcome_screen)
         self._runscreen.toErrorScreen.pressed.connect(self._to_error_screen)
         self._runscreen.nextPlan.pressed.connect(self._nextPlan)
         self._runscreen.previousPlan.pressed.connect(self._previousPlan)
+        self._runscreen.resetToHome.pressed.connect(self._reset_position)
         self._errordiagnosticscreen.openDataPlot.pressed.connect(self._open_data_plot)
         self._errordiagnosticscreen.backToRun.pressed.connect(self._to_run_screen)
-        self._errordiagnosticscreen.resetToHome.pressed.connect(self._reset_position)
+
 #        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_advanced_options)
 
-    def led_change(self,led):
-        led.setChecked(not led.isChecked())
+    def led_change(self,led,state):
+        led.setChecked(state)
 
     def _to_welcome_screen(self):
         self.stackedWidget.setCurrentIndex(0)
@@ -295,7 +297,7 @@ class ExperimentGUI(Plugin):
         #self.rosGraph.exec_()
 
     def _open_rviz_prompt(self):
-        subprocess.Popen('python', self.rviz_starter)
+        subprocess.Popen(['python', self.rviz_starter])
 #    def _open_advanced_options(self):
 #        main = Main()
 #        sys.exit(main.main(sys.argv, standalone='rqt_rviz/RViz', plugin_argument_provider=add_arguments))
@@ -304,9 +306,9 @@ class ExperimentGUI(Plugin):
             self.planListIndex=0
         else:
             self.planListIndex+=1
-
+        #self._open_rviz_prompt()
         if(self.planListIndex==0):
-            subprocess.Popen('python', self.reset_code)
+            subprocess.Popen(['python', self.reset_code])
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Not Localized")
@@ -357,7 +359,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("OFF")
             self._runscreen.pressureSensor.setText("[1,1,1]")
         elif(self.planListIndex==5):
-            self.process_controller.transport_payload()
+            self.process_controller.transport_payload('panel_nest_leeward_mid_panel_target')
             self.process_controller.pickup_raise()
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
@@ -368,7 +370,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("OFF")
             self._runscreen.pressureSensor.setText("[1,1,1]")
         elif(self.planListIndex==6):
-            subprocess.Popen('python', self.YC_place_code)
+            subprocess.Popen(['python', self.YC_place_code])
             self.process_controller.pickup_raise()
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
@@ -380,18 +382,19 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
-        self._open_rviz_prompt()
+
 
     def _previousPlan(self):
         print "Not Implemented yet"
 
     def _reset_position(self):
+        messagewindow=VacuumConfirm()
         reply = QMessageBox.question(messagewindow, 'Path Verification',
                      'Proceed to Reset Position', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply==QMessageBox.Yes:
             self.planListIndex=0
             self._runscreen.planList.item(self.planListIndex).setSelected(True)
-            subprocess.Popen('python', self.reset_code)
+            subprocess.Popen(['python', self.reset_code])
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Not Localized")
@@ -548,10 +551,18 @@ class ExperimentGUI(Plugin):
                 del item
         if(self.count>10):
             self.count=0
+            if(data.error_msg=="No data received from robot"):
+                self.stackedWidget.setCurrentIndex(0)
+                self.led_change(self.robotconnectionled,False)
+            else:
+                self.led_change(self.robotconnectionled,True)
             if(data.ft_wrench_valid=="False"):
                 self.stackedWidget.setCurrentIndex(0)
-                self.led_change(self.robotconnectionled)
-                self.led_change(self.forcetorqueled)
+
+                self.led_change(self.forcetorqueled,False)
+            else:
+
+                self.led_change(self.forcetorqueled,True)
         self.count+=1
 
             #if(len(self._data_array)>10):

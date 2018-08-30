@@ -26,18 +26,18 @@ if __name__ == '__main__':
     
     controller_commander.set_controller_mode(controller_commander.MODE_AUTO_TRAJECTORY, 1, [])  
         
-    rospy.loginfo( "============ Printing robot Pose")
-    rospy.loginfo( controller_commander.get_current_pose_msg())
+    #rospy.loginfo( "============ Printing robot Pose")
+    #rospy.loginfo( controller_commander.get_current_pose_msg())
     #print robot.get_current_state().joint_state.position
-    rospy.loginfo( "============ Generating plan 1")
+    #rospy.loginfo( "============ Generating plan 1")
     
     pose_target=rox.Transform(rox.q2R(Q), np.copy(P))
 
         
-    rospy.loginfo( 'Target:',pose_target)
+    #rospy.loginfo( 'Target:',pose_target)
     
-    rospy.loginfo( "============ Executing plan1")
+    #rospy.loginfo( "============ Executing plan1")
     controller_commander.plan_and_move(pose_target)        
-    rospy.loginfo( 'Execution Finished.')
+    #rospy.loginfo( 'Execution Finished.')
   
        
