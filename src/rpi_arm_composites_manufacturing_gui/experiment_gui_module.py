@@ -18,7 +18,8 @@ from PyQt5.QtGui import *
 from arm_composites_manufacturing_process import ProcessController
 
 from rpi_arm_composites_manufacturing_abb_egm_controller.msg import ControllerState as controllerstate
-
+from rpi_arm_composites_manufacturing_process.msg import ProcessStepAction, ProcessStepGoal
+import actionlib
 from rqt_console import console_widget
 from rqt_console import message_proxy_model
 from rqt_graph import ros_graph
@@ -166,6 +167,7 @@ class ExperimentGUI(Plugin):
 
         # Create QWidget
         self._mainwidget = QWidget()
+        self.disconnectreturnoption=False
         self.stackedWidget=QStackedWidget(self._mainwidget)
         self._welcomescreen=QWidget()
         self._runscreen=QWidget()
@@ -185,9 +187,12 @@ class ExperimentGUI(Plugin):
         self.overheadcameraled.setDisabled(True)  # Make the led non clickable
         self.grippercameraled=LEDIndicator()
         self.grippercameraled.setDisabled(True)  # Make the led non clickable
-        self.process_controller=ProcessController()
+        self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
+        self.client.wait_for_server()
 
 
+        self.led_change(self.overheadcameraled,True)
+        self.led_change(self.grippercameraled,True)
         self.mode=0
         self.count=0
         change_controller_state=self.change_controller_state
@@ -251,6 +256,18 @@ class ExperimentGUI(Plugin):
         self._runscreen.gripperCamera.setText("OFF")
         self._runscreen.forceSensor.setText("Biased to 0")
         self._runscreen.pressureSensor.setText("[0,0,0]")
+        self._runscreen.panelType.setText("Leeward Mid Panel")
+        self._runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
+        self._runscreen.vacuum.setReadOnly(True)
+        self._runscreen.panel.setReadOnly(True)
+        self._runscreen.panelTag.setReadOnly(True)
+        self._runscreen.nestTag.setReadOnly(True)
+        self._runscreen.overheadCamera.setReadOnly(True)
+        self._runscreen.gripperCamera.setReadOnly(True)
+        self._runscreen.forceSensor.setReadOnly(True)
+        self._runscreen.pressureSensor.setReadOnly(True)
+        self._runscreen.panelType.setReadOnly(True)
+        self._runscreen.placementNestTarget.setReadOnly(True)
         """
         self.above_panel=False
         self._widget.Speed_scalar.setInputMask("9.99")
@@ -301,12 +318,25 @@ class ExperimentGUI(Plugin):
 #    def _open_advanced_options(self):
 #        main = Main()
 #        sys.exit(main.main(sys.argv, standalone='rqt_rviz/RViz', plugin_argument_provider=add_arguments))
+
+    def _execute_step(self,step, target=""):
+        client=self.client
+        g=ProcessStepGoal(step, target)
+        client.send_goal(g)
+        client.wait_for_result()
+        if client.get_state() != actionlib.GoalStatus.SUCCEEDED:
+            raise Exception("Process step failed")
+        print client.get_result()
+        #TODO: using client.get_state can implemen action state recall to eliminate plan from moveit?
+
     def _nextPlan(self):
         if(self.planListIndex+1==self._runscreen.planList.count()):
             self.planListIndex=0
         else:
             self.planListIndex+=1
         #self._open_rviz_prompt()
+        self._runscreen.planList.item(self.planListIndex).setSelected(True)
+        time.sleep(1)
         if(self.planListIndex==0):
             subprocess.Popen(['python', self.reset_code])
             self._runscreen.vacuum.setText("OFF")
@@ -319,7 +349,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
         elif(self.planListIndex==1):
 
-            self.process_controller.pickup_prepare('leeward_mid_panel')
+            self._execute_step('pickup_prepare','leeward_mid_panel')
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -329,7 +359,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[0,0,0]")
         elif(self.planListIndex==2):
-            self.process_controller.pickup_lower()
+            self._execute_step('pickup_lower')
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -339,7 +369,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[0,0,0]")
         elif(self.planListIndex==3):
-            self.process_controller.pickup_grab()
+            self._execute_step('pickup_grab')
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -349,7 +379,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[1,1,1]")
         elif(self.planListIndex==4):
-            self.process_controller.pickup_raise()
+            self._execute_step('pickup_raise')
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -359,8 +389,8 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("OFF")
             self._runscreen.pressureSensor.setText("[1,1,1]")
         elif(self.planListIndex==5):
-            self.process_controller.transport_payload('panel_nest_leeward_mid_panel_target')
-            self.process_controller.pickup_raise()
+            self._execute_step('transport_payload','panel_nest_leeward_mid_panel_target')
+
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -371,7 +401,6 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[1,1,1]")
         elif(self.planListIndex==6):
             subprocess.Popen(['python', self.YC_place_code])
-            self.process_controller.pickup_raise()
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -381,11 +410,15 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[0,0,0]")
 
-        self._runscreen.planList.item(self.planListIndex).setSelected(True)
+
 
 
     def _previousPlan(self):
-        print "Not Implemented yet"
+        if(self.planListIndex==0):
+            self.planListIndex=self._runscreen.planList.count()-1
+        else:
+            self.planListIndex-=1
+        self._runscreen.planList.item(self.planListIndex).setSelected(True)
 
     def _reset_position(self):
         messagewindow=VacuumConfirm()
@@ -553,6 +586,15 @@ class ExperimentGUI(Plugin):
             self.count=0
             if(data.error_msg=="No data received from robot"):
                 self.stackedWidget.setCurrentIndex(0)
+                #messagewindow=VacuumConfirm()
+                #reply = QMessageBox.question(messagewindow, 'Connection Lost',
+                         #    'Robot Connection Lost, Return to Welcome Screen?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                #if reply==QMessageBox.Yes:
+                 #
+                 #   self.disconnectreturnoption=False
+                #else:
+       #             self.disconnectreturnoption=True
+
                 self.led_change(self.robotconnectionled,False)
             else:
                 self.led_change(self.robotconnectionled,True)
@@ -563,6 +605,9 @@ class ExperimentGUI(Plugin):
             else:
 
                 self.led_change(self.forcetorqueled,True)
+
+            #if(self.disconnectreturnoption and data.error_msg==""):
+             #   self.disconnectreturnoption=False
         self.count+=1
 
             #if(len(self._data_array)>10):
