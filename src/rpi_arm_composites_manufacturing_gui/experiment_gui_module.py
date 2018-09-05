@@ -147,7 +147,6 @@ class RQTPlotWindow(QMainWindow):
 class ExperimentGUI(Plugin):
 
     def __init__(self, context):
-        #rospy.init_node('collision_checker','move_group_python_interface_tutorial', anonymous=True)
         super(ExperimentGUI, self).__init__(context)
         # Give QObjects reasonable names
         self.plans=['Starting Position','Pickup Prepare','Pickup Lower','Pickup Grab','Pickup Raise','Transport Payload','Place Panel and Lift']
@@ -195,11 +194,7 @@ class ExperimentGUI(Plugin):
         self.led_change(self.grippercameraled,True)
         self.mode=0
         self.count=0
-        change_controller_state=self.change_controller_state
-        #self.armcontroller=ARMControllerCommander()
-        #self.Vision_MoveIt=VisionMoveIt(self.armcontroller,change_controller_state)
-        #self.Vision_MoveIt.moveit_init()
-        #self.Vision_MoveIt.load_offsets_from_yaml()
+
         # Get path to UI file which should be in the "resource" folder of this package
         self.welcomescreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'welcomeconnectionscreen.ui')
         self.runscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreen.ui')
@@ -271,16 +266,9 @@ class ExperimentGUI(Plugin):
         """
         self.above_panel=False
         self._widget.Speed_scalar.setInputMask("9.99")
-        self._widget.Ft_threshold.setInputMask("999")
         self._widget.Speed_scalar.setText("1.00")
-        self._widget.Ft_threshold.setText("300")
-        rospy.Subscriber("controller_state", controllerstate, self.callback)
-        self._widget.tabWidget.currentChanged.connect(self._handle_controller_state_change)
         self._widget.Vacuum.toggled.connect(self._handle_vacuum_change)
-
         self._widget.Speed_scalar.textEdited.connect(self._change_values)
-        self._widget.Ft_threshold.textEdited.connect(self._change_values)
-        self._widget.Panel_pickup.pressed.connect(self._pickup_panel)
         """
         rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._welcomescreen.openConfig.clicked.connect(lambda: self.led_change(self.robotconnectionled,False))
@@ -349,7 +337,8 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
         elif(self.planListIndex==1):
 
-            self._execute_step('pickup_prepare','leeward_mid_panel')
+            self._execute_step('plan_pickup_prepare','leeward_mid_panel')
+            self._execute_step('move','pickup_prepare')
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -437,54 +426,9 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("Biased to 0")
             self._runscreen.pressureSensor.setText("[0,0,0]")
         else:
-            rospy.loginfo("Reset Rejected")
-	
-    def _move_to_panel(self):
-        rospy.loginfo("Move to Panel command given")
-        #self.Vision_MoveIt.camera_read()
-        #self.Vision_MoveIt.set_positions()
-        rospy.loginfo("Camera read and positions set")
-        #self.armcontroller.set_controller(4,self.speed_scalar,self.ft_threshold)
+            rospy.loginfo("Reset Rejected")   
 
-        #plan1=self.Vision_MoveIt.generate_plan(1)
-        rospy.loginfo("Plans generated, asking for confirmation of plan")
-        messagewindow=VacuumConfirm()
-        reply = QMessageBox.question(messagewindow, 'Path Verification',
-		             'Is MoveIt Motion Path Acceptable?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply==QMessageBox.Yes:
-            rospy.loginfo("Path Accepted, Proceeding to Panel")
-            self.Vision_MoveIt.execute_plans(plan1)
-            self.above_panel=True
-        else:
-            rospy.logerr("Path Rejected, Press Move Above Panel again to retry")
-        
-        
 
-    def _pickup_panel(self):
-        if(self.above_panel):
-            rospy.loginfo("Pickup Panel Command given")
-            #self.armcontroller.set_controller(4,self.speed_scalar,self.ft_threshold)
-            '''if(self.speed_scalar>0.4):
-                self._widget.Error_msg.setText("Speed Scalar Value is too High for Pickup Operation")
-                return
-            '''
-            plan2=self.Vision_MoveIt.generate_plan(2)
-            rospy.loginfo("Generating Pickup plan")
-            self.Vision_MoveIt.execute_plans(plan2)
-            rospy.loginfo("Finished lowering robot")
-            #self.armcontroller.set_controller(4,self.speed_scalar,[])
-
-            self.armcontroller.set_vacuum(1)
-            self._widget.Vacuum.setCheckState(True)
-            rospy.sleep(1)
-            time.sleep(1)
-            plan3=self.Vision_MoveIt.generate_plan(3)
-            rospy.loginfo("Generated Raise plan")
-            self.Vision_MoveIt.execute_plans(plan3)
-            rospy.loginfo("Finished raising panel")
-        else:
-            #self._widget.Error_msg.setText("Not above Panel")
-            rospy.logerr("You must move above Panel before asking to pickup")
 
     def _change_values(self):
 	
@@ -525,40 +469,6 @@ class ExperimentGUI(Plugin):
 
                 self._widget.Ft_threshold.setModified(False)
 		    
-			
-
-    def _handle_vacuum_change(self):
-        if self._widget.Vacuum.isChecked():
-            rospy.loginfo("GUI activated Vacuum")
-            #self.armcontroller.set_vacuum(1)
-	    
-        else:
-            messagewindow=VacuumConfirm()
-            reply = QMessageBox.question(messagewindow, 'Release Vacuum?',
-                 'Shutdown Vacuum?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if reply==QMessageBox.Yes:
-                rospy.loginfo("Vacuum shutdown from GUI")
-                #self.armcontroller.set_vacuum(0)
-            else:
-                self._widget.Vacuum.setCheckState(True)
-                rospy.loginfo("Vacuum shutdown cancelled from GUI")
-
-    def _handle_controller_state_change(self, tabIndex):
-        #print tabIndex
-        if tabIndex==0:
-			
-            print "Manual Mode set"
-        if tabIndex==1:
-            self.change_controller_state(4,self.speed_scalar,self.ft_threshold)
-        if tabIndex==2:
-            self.change_controller_state(2,self.speed_scalar,self.ft_threshold)
-            #print self.speed_scalar
-
-        #if self._widget.Automatic_mode.isDown():
-            #print "Fully autonomous motion selected"
-        #if self._widget.Manual_mode.isDown():
-            #print "Manual Mode selected use Teach Pendant to Control"
-
 
     def callback(self,data):
         #self._widget.State_info.append(data.mode)
