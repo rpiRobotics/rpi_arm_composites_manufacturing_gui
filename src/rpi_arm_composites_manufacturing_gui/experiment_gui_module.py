@@ -348,7 +348,8 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[0,0,0]")
         elif(self.planListIndex==2):
-            self._execute_step('pickup_lower')
+            self._execute_step('plan_pickup_lower')
+            self._execute_step('move','pickup_lower')
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -358,7 +359,10 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[0,0,0]")
         elif(self.planListIndex==3):
-            self._execute_step('pickup_grab')
+            self._execute_step('plan_pickup_grab_first_step')
+            self._execute_step('move_with_force_stop','pickup_grab_first_step')
+            self._execute_step('plan_pickup_grab_second_step')
+            self._execute_step('move','pickup_grab_second_step')
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -368,7 +372,8 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[1,1,1]")
         elif(self.planListIndex==4):
-            self._execute_step('pickup_raise')
+            self._execute_step('plan_pickup_raise')
+            self._execute_step('move','pickup_raise')
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -378,8 +383,8 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("OFF")
             self._runscreen.pressureSensor.setText("[1,1,1]")
         elif(self.planListIndex==5):
-            self._execute_step('transport_payload','panel_nest_leeward_mid_panel_target')
-
+            self._execute_step('plan_transport_payload','panel_nest_leeward_mid_panel_target')
+            self._execute_step('move','transport_payload')
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
