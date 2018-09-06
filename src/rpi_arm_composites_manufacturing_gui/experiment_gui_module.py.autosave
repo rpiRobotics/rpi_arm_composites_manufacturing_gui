@@ -295,7 +295,11 @@ class ExperimentGUI(Plugin):
         ## instantiates and initializes the VisualizationManager,
         ## which is the central class of RViz.
         self._runscreen.rviz_frame.initialize()
-
+        reader = rviz.YamlConfigReader()
+        config = rviz.Config()
+        path=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_testbed_moveit_config'), 'launch', 'moveit.rviz')
+        reader.readFile( config, path)
+        self._runscreen.rviz_frame.load( config )
 #        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_advanced_options)
 
     def led_change(self,led,state):
