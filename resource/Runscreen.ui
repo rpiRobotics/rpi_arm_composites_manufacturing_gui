@@ -113,7 +113,7 @@ SCREEN</string>
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>../images/undo.png</normaloff>../images/undo.png</iconset>
+         <normaloff>../../../../.designer/images/undo.png</normaloff>../../../../.designer/images/undo.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -151,7 +151,7 @@ Mode</string>
          </property>
          <property name="icon">
           <iconset>
-           <normaloff>../images/login.png</normaloff>../images/login.png</iconset>
+           <normaloff>../../../../.designer/images/login.png</normaloff>../../../../.designer/images/login.png</iconset>
          </property>
          <property name="iconSize">
           <size>
@@ -444,16 +444,6 @@ Mode</string>
       <widget class="QLineEdit" name="pressureSensor"/>
      </item>
     </layout>
-   </item>
-   <item>
-    <widget class="QFrame" name="rviz_frame">
-     <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
-     </property>
-     <property name="frameShadow">
-      <enum>QFrame::Raised</enum>
-     </property>
-    </widget>
    </item>
   </layout>
  </widget>

@@ -22,7 +22,7 @@ from rpi_arm_composites_manufacturing_process.msg import ProcessStepAction, Proc
 import actionlib
 from rqt_console import console_widget
 from rqt_console import message_proxy_model
-from rqt_graph import ros_graph
+from rqt_plot import plot
 import rosservice
 import rviz
 
@@ -140,7 +140,7 @@ class ConsoleThread(QThread):
 class RQTPlotWindow(QMainWindow):
     def __init__(self, parent=None):
         super(RQTPlotWindow, self).__init__(None)
-        self.rqtgraph=ros_graph.RosGraph(parent)
+        self.rqtgraph=plot.Plot(parent)
 
 
 
@@ -217,7 +217,8 @@ class ExperimentGUI(Plugin):
         context.add_widget(self._mainwidget)
         self.context=context
 
-
+        self.plugin_settings=None
+        self.instance_settings=None
         #self._errordiagnosticscreen.consoleWidget=console_widget.ConsoleWidget(self._proxy_model,self._rospack)
         #####consoleThread=ConsoleThread(self._widget.State_info)
        # self._welcomescreen.statusFormLayout.takeAt(0)
@@ -279,22 +280,20 @@ class ExperimentGUI(Plugin):
         self._runscreen.nextPlan.pressed.connect(self._nextPlan)
         self._runscreen.previousPlan.pressed.connect(self._previousPlan)
         self._runscreen.resetToHome.pressed.connect(self._reset_position)
-        self._errordiagnosticscreen.openDataPlot.pressed.connect(self._open_data_plot)
+        self._errordiagnosticscreen.openForceTorqueDataPlot.pressed.connect(self._open_force_torque_data_plot)
+        self._errordiagnosticscreen.openJointAngleDataPlot.pressed.connect(self._open_joint_angle_data_plot)
         self._errordiagnosticscreen.backToRun.pressed.connect(self._to_run_screen)
-
-        self._runscreen.rviz_frame = rviz.VisualizationFrame()
-
-        ## The "splash path" is the full path of an image file which
-        ## gets shown during loading.  Setting it to the empty string
-        ## suppresses that behavior.
-        self._runscreen.rviz_frame.setSplashPath( "" )
+        #self._runscreen.widget.frame=rviz.VisualizationFrame()
+        #self._runscreen.widget.frame.setSplashPath( "" )
 
         ## VisualizationFrame.initialize() must be called before
         ## VisualizationFrame.load().  In fact it must be called
         ## before most interactions with RViz classes because it
         ## instantiates and initializes the VisualizationManager,
         ## which is the central class of RViz.
-        self._runscreen.rviz_frame.initialize()
+        #self._runscreen.widget.frame.initialize()
+        #self.manager = self._runscreen.widget.frame.getManager()
+
 
 #        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_advanced_options)
 
@@ -310,10 +309,13 @@ class ExperimentGUI(Plugin):
     def _to_error_screen(self):
         self.stackedWidget.setCurrentIndex(2)
 
-    def _open_data_plot(self):
+    def _open_force_torque_data_plot(self):
         self.rosGraph=RQTPlotWindow(self.context)
+
         #self.rosGraph.show()
         #self.rosGraph.exec_()
+    def _open_joint_angle_data_plot(self):
+        self.rosGraph=RQTPlotWindow(self.context)
 
     def _open_rviz_prompt(self):
         subprocess.Popen(['python', self.rviz_starter])
@@ -352,7 +354,7 @@ class ExperimentGUI(Plugin):
         elif(self.planListIndex==1):
 
             self._execute_step('plan_pickup_prepare','leeward_mid_panel')
-            self._execute_step('move','pickup_prepare')
+            self._execute_step('move_pickup_prepare')
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -363,7 +365,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
         elif(self.planListIndex==2):
             self._execute_step('plan_pickup_lower')
-            self._execute_step('move','pickup_lower')
+            self._execute_step('move_pickup_lower')
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -374,9 +376,9 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
         elif(self.planListIndex==3):
             self._execute_step('plan_pickup_grab_first_step')
-            self._execute_step('move_with_force_stop','pickup_grab_first_step')
+            self._execute_step('move_pickup_grab_first_step')
             self._execute_step('plan_pickup_grab_second_step')
-            self._execute_step('move','pickup_grab_second_step')
+            self._execute_step('move_pickup_grab_second_step')
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -387,7 +389,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[1,1,1]")
         elif(self.planListIndex==4):
             self._execute_step('plan_pickup_raise')
-            self._execute_step('move','pickup_raise')
+            self._execute_step('move_pickup_raise')
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -398,7 +400,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[1,1,1]")
         elif(self.planListIndex==5):
             self._execute_step('plan_transport_payload','panel_nest_leeward_mid_panel_target')
-            self._execute_step('move','transport_payload')
+            self._execute_step('move_transport_payload')
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -496,7 +498,7 @@ class ExperimentGUI(Plugin):
             #stringdata=str(data.mode)
             #freeBytes.acquire()
             #####consoleData.append(str(data.mode))
-                self._errordiagnosticscreen.State_info.addItem(str(data.joint_position))
+                self._errordiagnosticscreen.consoleWidget_2.addItem(str(data.joint_position))
                 self.count=0
 
                 #print data.joint_position
@@ -506,15 +508,15 @@ class ExperimentGUI(Plugin):
             #usedBytes.release()
             #self._data_array.append(stringdata)
             #print self._widget.State_info.count()
-            if(self._widget.State_info.count()>200):
+            if(self._errordiagnosticscreen.consoleWidget_2.count()>200):
 
-                item=self._widget.State_info.takeItem(0)
+                item=self._errordiagnosticscreen.consoleWidget_2.takeItem(0)
                 #print "Hello Im maxed out"
                 del item
         if(self.count>10):
             self.count=0
             if(data.error_msg=="No data received from robot"):
-                self.stackedWidget.setCurrentIndex(0)
+                #self.stackedWidget.setCurrentIndex(0)
                 #messagewindow=VacuumConfirm()
                 #reply = QMessageBox.question(messagewindow, 'Connection Lost',
                          #    'Robot Connection Lost, Return to Welcome Screen?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)

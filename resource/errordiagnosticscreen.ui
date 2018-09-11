@@ -136,7 +136,7 @@ SCREEN</string>
       </spacer>
      </item>
      <item>
-      <widget class="QListWidget" name="listWidget"/>
+      <widget class="QListWidget" name="consoleWidget_2"/>
      </item>
      <item>
       <widget class="QWidget" name="consoleWidget" native="true"/>
@@ -197,15 +197,15 @@ Window</string>
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="openCameraView">
+      <widget class="QPushButton" name="openOverheadCameraView">
        <property name="font">
         <font>
          <pointsize>18</pointsize>
         </font>
        </property>
        <property name="text">
-        <string>Open Camera
-View Window</string>
+        <string>Open Overhead
+Camera View</string>
        </property>
       </widget>
      </item>
@@ -223,15 +223,67 @@ View Window</string>
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="openDataPlot">
+      <widget class="QPushButton" name="openGripperCameraViews">
        <property name="font">
         <font>
          <pointsize>18</pointsize>
         </font>
        </property>
        <property name="text">
-        <string>Open Data Plot
-Window</string>
+        <string>Open Gripper
+Camera Views</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="verticalSpacer_9">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="openForceTorqueDataPlot">
+       <property name="font">
+        <font>
+         <pointsize>18</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Open Force Torque
+Data Plot</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="verticalSpacer_7">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="openJointAngleDataPlot">
+       <property name="font">
+        <font>
+         <pointsize>18</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Open Joint Angle
+Data Plot</string>
        </property>
       </widget>
      </item>
