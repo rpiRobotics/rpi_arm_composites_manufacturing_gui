@@ -328,6 +328,8 @@ class ExperimentGUI(Plugin):
     def _execute_step(self,step, target=""):
         client=self.client
         g=ProcessStepGoal(step, target)
+        while(self.in_process==True):
+            pass
         client.send_goal(g)
         self.in_process=True
 
@@ -433,8 +435,13 @@ class ExperimentGUI(Plugin):
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
 
     def _stopPlan(self):
+        #client=self.client
+        #
         client=self.client
-        client.cancel_goal()
+        client.cancel_all_goals()
+        g=ProcessStepGoal('stop', "")
+
+        client.send_goal(g)
 
     def _reset_position(self):
         messagewindow=VacuumConfirm()
@@ -521,17 +528,27 @@ class ExperimentGUI(Plugin):
                 del item
 
         if self.in_process:
-            if self.client.get_state() == actionlib.GoalStatus.PENDING:
+            if self.client.get_state() == actionlib.GoalStatus.PENDING or self.client.get_state() == actionlib.GoalStatus.ACTIVE:
                 self._runscreen.nextPlan.setDisabled(True)
                 self._runscreen.previousPlan.setDisabled(True)
                 self._runscreen.resetToHome.setDisabled(True)
+                rospy.loginfo("Pending")
             elif self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
                 self._runscreen.nextPlan.setDisabled(False)
                 self._runscreen.previousPlan.setDisabled(False)
                 self._runscreen.resetToHome.setDisabled(False)
                 self.in_process=False
-            elif self.client.get_state() == actionlib.GoalStatus.ABORTED or self.client.get_state() == actionlib.GoalStatus.REJECTED or self.client.get_state() == actionlib.GoalStatus.LOST:
-                raise Exception("Process step failed")
+                rospy.loginfo("Succeeded")
+            elif self.client.get_state() == actionlib.GoalStatus.ABORTED:
+                self.in_process=False
+                raise Exception("Process step failed and aborted")
+
+            elif self.client.get_state() == actionlib.GoalStatus.REJECTED:
+                self.in_process=False
+                raise Exception("Process step failed and Rejected")
+            elif self.client.get_state() == actionlib.GoalStatus.LOST:
+                self.in_process=False
+                raise Exception("Process step failed and lost")
 
         if(self.count>10):
             self.count=0
