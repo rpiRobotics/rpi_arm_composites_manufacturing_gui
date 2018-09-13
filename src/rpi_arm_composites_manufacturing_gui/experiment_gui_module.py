@@ -165,6 +165,7 @@ class ExperimentGUI(Plugin):
             print 'unknowns: ', unknowns
 
         # Create QWidget
+        self.in_process=None
         self._mainwidget = QWidget()
         self.disconnectreturnoption=False
         self.stackedWidget=QStackedWidget(self._mainwidget)
@@ -280,6 +281,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.nextPlan.pressed.connect(self._nextPlan)
         self._runscreen.previousPlan.pressed.connect(self._previousPlan)
         self._runscreen.resetToHome.pressed.connect(self._reset_position)
+        self._runscreen.stopPlan.pressed.connect(self._stopPlan)
         self._errordiagnosticscreen.openForceTorqueDataPlot.pressed.connect(self._open_force_torque_data_plot)
         self._errordiagnosticscreen.openJointAngleDataPlot.pressed.connect(self._open_joint_angle_data_plot)
         self._errordiagnosticscreen.backToRun.pressed.connect(self._to_run_screen)
@@ -327,9 +329,8 @@ class ExperimentGUI(Plugin):
         client=self.client
         g=ProcessStepGoal(step, target)
         client.send_goal(g)
-        client.wait_for_result()
-        if client.get_state() != actionlib.GoalStatus.SUCCEEDED:
-            raise Exception("Process step failed")
+        self.in_process=True
+
         print client.get_result()
         #TODO: using client.get_state can implemen action state recall to eliminate plan from moveit?
 
@@ -341,6 +342,7 @@ class ExperimentGUI(Plugin):
         #self._open_rviz_prompt()
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
         time.sleep(1)
+
         if(self.planListIndex==0):
             subprocess.Popen(['python', self.reset_code])
             self._runscreen.vacuum.setText("OFF")
@@ -430,6 +432,10 @@ class ExperimentGUI(Plugin):
             self.planListIndex-=1
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
 
+    def _stopPlan(self):
+        client=self.client
+        client.cancel_goal()
+
     def _reset_position(self):
         messagewindow=VacuumConfirm()
         reply = QMessageBox.question(messagewindow, 'Path Verification',
@@ -513,6 +519,20 @@ class ExperimentGUI(Plugin):
                 item=self._errordiagnosticscreen.consoleWidget_2.takeItem(0)
                 #print "Hello Im maxed out"
                 del item
+
+        if self.in_process:
+            if self.client.get_state() == actionlib.GoalStatus.PENDING:
+                self._runscreen.nextPlan.setDisabled(True)
+                self._runscreen.previousPlan.setDisabled(True)
+                self._runscreen.resetToHome.setDisabled(True)
+            elif self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
+                self._runscreen.nextPlan.setDisabled(False)
+                self._runscreen.previousPlan.setDisabled(False)
+                self._runscreen.resetToHome.setDisabled(False)
+                self.in_process=False
+            elif self.client.get_state() == actionlib.GoalStatus.ABORTED or self.client.get_state() == actionlib.GoalStatus.REJECTED or self.client.get_state() == actionlib.GoalStatus.LOST:
+                raise Exception("Process step failed")
+
         if(self.count>10):
             self.count=0
             if(data.error_msg=="No data received from robot"):
