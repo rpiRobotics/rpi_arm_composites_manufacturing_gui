@@ -25,7 +25,7 @@ from rqt_console import message_proxy_model
 from rqt_plot import plot
 import rosservice
 import rviz
-
+import arm_composites_manufacturing_controller_commander as controller_commander_pkg
 
 
 '''
@@ -151,7 +151,7 @@ class ExperimentGUI(Plugin):
         # Give QObjects reasonable names
         self.plans=['Starting Position','Pickup Prepare','Pickup Lower','Pickup Grab','Pickup Raise','Transport Payload','Place Panel and Lift']
         self.setObjectName('MyPlugin')
-
+        self.controller_commander=controller_commander_pkg.arm_composites_manufacturing_controller_commander()
         # Process standalone plugin command-line arguments
         from argparse import ArgumentParser
         parser = ArgumentParser()
@@ -166,6 +166,7 @@ class ExperimentGUI(Plugin):
 
         # Create QWidget
         self.in_process=None
+        self.recover_from_pause=False
         self._mainwidget = QWidget()
         self.disconnectreturnoption=False
         self.stackedWidget=QStackedWidget(self._mainwidget)
@@ -339,6 +340,8 @@ class ExperimentGUI(Plugin):
     def _nextPlan(self):
         if(self.planListIndex+1==self._runscreen.planList.count()):
             self.planListIndex=0
+        elif self.recover_from_pause:
+            self.recover_from_pause=False
         else:
             self.planListIndex+=1
         #self._open_rviz_prompt()
@@ -437,11 +440,11 @@ class ExperimentGUI(Plugin):
     def _stopPlan(self):
         #client=self.client
         #
+        self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT, 0, [])
         client=self.client
         client.cancel_all_goals()
-        g=ProcessStepGoal('stop', "")
+        self.recover_from_pause=True
 
-        client.send_goal(g)
 
     def _reset_position(self):
         messagewindow=VacuumConfirm()
@@ -541,7 +544,8 @@ class ExperimentGUI(Plugin):
                 rospy.loginfo("Succeeded")
             elif self.client.get_state() == actionlib.GoalStatus.ABORTED:
                 self.in_process=False
-                raise Exception("Process step failed and aborted")
+                if(not self.recover_from_pause):
+                    raise Exception("Process step failed and aborted")
 
             elif self.client.get_state() == actionlib.GoalStatus.REJECTED:
                 self.in_process=False
