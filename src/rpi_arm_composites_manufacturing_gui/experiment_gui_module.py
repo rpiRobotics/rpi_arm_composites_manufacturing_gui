@@ -534,6 +534,7 @@ class ExperimentGUI(Plugin):
             self._execute_step('plan_pickup_raise')
         elif(self.planListIndex==5):
             self._execute_step('plan_transport_payload',self.placement_target)
+        self.controller_commander.set_controller_mode(self.controller_commander.MODE_SHARED_TRAJECTORY, 0, [])
 
     def callback(self,data):
         #self._widget.State_info.append(data.mode)
