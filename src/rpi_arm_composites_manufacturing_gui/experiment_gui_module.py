@@ -342,9 +342,9 @@ class ExperimentGUI(Plugin):
 
 
     def _open_force_torque_data_plot(self):
-        x = np.arange(1000)
+        self.x_data = np.arange(1000)
         y = np.random.normal(size=(3, 1000))
-        self.force_torque_plot_widget=QDockWidget()
+        self.force_torque_plot_widget=QWidget()
         self.force_torque_plot_widget=pg.plot()
         #self.layout.addWidget(self.force_torque_plot_widget,0,1)
 
@@ -612,13 +612,15 @@ class ExperimentGUI(Plugin):
         self.count+=1
 
         if(self.force_torque_plot):
-            incoming=np.array([data.ft_wrench]).reshape(3,1)
-            self.force_torque_data.append(incoming,axis=1)
+            incoming=np.array([data.ft_wrench.torque.x,data.ft_wrench.torque.y,data.ft_wrench.torque.z,data.ft_wrench.force.x,data.ft_wrench.force.y,data.ft_wrench.force.z]).reshape(6,1)
+            self.force_torque_data=np.concatenate((self.force_torque_data,incoming),axis=1)
+
             if(self.data_count>500):
                 self.force_torque_data=self.force_torque_data[...,1:]
             else:
                 self.data_count+=1
-
+            for i in range(6):
+                self.force_torque_plot_widget.plot(self.x_data,self.force_torque_data[i,...],pens=(i,6))
             #if(len(self._data_array)>10):
         #	for x in self._data_array:
         #		self._widget.State_info.append(x)
