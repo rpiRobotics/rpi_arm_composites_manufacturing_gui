@@ -212,7 +212,7 @@ class ExperimentGUI(Plugin):
         self.mode=0
         self.count=0
         self.data_count=0
-        self.force_torque_data=np.zeros((3,1))
+        self.force_torque_data=np.zeros((6,1))
 
         # Get path to UI file which should be in the "resource" folder of this package
         self.welcomescreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'welcomeconnectionscreen.ui')
@@ -342,16 +342,21 @@ class ExperimentGUI(Plugin):
 
 
     def _open_force_torque_data_plot(self):
-        self.x_data = np.arange(1000)
+        self.plot_container=[]
+        self.x_data = np.arange(1)
         y = np.random.normal(size=(3, 1000))
-        self.force_torque_plot_widget=QWidget()
+        self.force_torque_app=QApplication([])
+
         self.force_torque_plot_widget=pg.plot()
         #self.layout.addWidget(self.force_torque_plot_widget,0,1)
 
+        self.force_torque_plot_widget.showGrid(x=True, y=True)
+        self.force_torque_plot_widget.setLabel('left','amplitude','uV')
+        self.force_torque_plot_widget.setLabel('bottom','time','s')
 
-
-
-        self.force_torque_plot_widget.plot()
+        self.plot_container.append(self.force_torque_plot_widget.plot(pen=(255,0,0),name="curve 1"))
+        self.plot_container.append(self.force_torque_plot_widget.plot(pen=(0,255,0)))
+        self.plot_container.append(self.force_torque_plot_widget.plot(pen=(0,0,255)))
 
         #self.force_torque_plotter=PlotManager(title='Force Torque Data',nline=3,widget=self.force_torque_plot_widget)
         #self.force_torque_plot_widget.show()
@@ -611,16 +616,19 @@ class ExperimentGUI(Plugin):
              #   self.disconnectreturnoption=False
         self.count+=1
 
-        if(self.force_torque_plot):
+        if(not self.force_torque_plot_widget.isHidden()):
+            self.x_data=np.concatenate((x_data,data.header.time))
             incoming=np.array([data.ft_wrench.torque.x,data.ft_wrench.torque.y,data.ft_wrench.torque.z,data.ft_wrench.force.x,data.ft_wrench.force.y,data.ft_wrench.force.z]).reshape(6,1)
             self.force_torque_data=np.concatenate((self.force_torque_data,incoming),axis=1)
 
             if(self.data_count>500):
                 self.force_torque_data=self.force_torque_data[...,1:]
+                self.x_data=self.x_data[1:]
             else:
                 self.data_count+=1
-            for i in range(6):
-                self.force_torque_plot_widget.plot(self.x_data,self.force_torque_data[i,...],pens=(i,6))
+            for i in range(3):
+                self.plot_container[i].setData(self.x_data,self.force_torque_data[i,...])
+            self.force_torque_app.processEvents()
             #if(len(self._data_array)>10):
         #	for x in self._data_array:
         #		self._widget.State_info.append(x)
