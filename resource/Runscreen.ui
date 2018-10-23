@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>802</width>
-    <height>584</height>
+    <height>586</height>
    </rect>
   </property>
   <property name="palette">
@@ -419,90 +419,6 @@ Control</string>
      </item>
      <item row="0" column="4">
       <widget class="QLineEdit" name="placementNestTarget"/>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QGridLayout" name="gridLayout_2">
-     <item row="1" column="4">
-      <widget class="QLabel" name="label_7">
-       <property name="text">
-        <string>Gripper Camera:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_3">
-       <property name="text">
-        <string>Panel Localization:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>Vacuum:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="vacuum"/>
-     </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="panel"/>
-     </item>
-     <item row="1" column="2">
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>Nest Tag:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="2">
-      <widget class="QLabel" name="label_4">
-       <property name="text">
-        <string>Panel Tag:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="3">
-      <widget class="QLineEdit" name="panelTag"/>
-     </item>
-     <item row="1" column="3">
-      <widget class="QLineEdit" name="nestTag"/>
-     </item>
-     <item row="0" column="4">
-      <widget class="QLabel" name="label_6">
-       <property name="text">
-        <string>Overhead Camera:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="5">
-      <widget class="QLineEdit" name="overheadCamera"/>
-     </item>
-     <item row="1" column="5">
-      <widget class="QLineEdit" name="gripperCamera"/>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="label_8">
-       <property name="text">
-        <string>F/T Threshold</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QLineEdit" name="forceSensor"/>
-     </item>
-     <item row="2" column="4">
-      <widget class="QLabel" name="label_9">
-       <property name="text">
-        <string>Pressure Sensor:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="5">
-      <widget class="QLineEdit" name="pressureSensor"/>
      </item>
     </layout>
    </item>

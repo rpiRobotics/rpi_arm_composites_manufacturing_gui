@@ -17,19 +17,19 @@ from PyQt5.QtGui import *
 
 from arm_composites_manufacturing_process import ProcessController
 
-from rpi_arm_composites_manufacturing_abb_egm_controller.msg import ControllerState as controllerstate
-from rpi_arm_composites_manufacturing_process.msg import ProcessStepAction, ProcessStepGoal
+from safe_kinematic_controller.msg import ControllerState as controllerstate
+from safe_kinematic_controller.srv import SetControllerMode, SetControllerModeRequest
+from rpi_arm_composites_manufacturing_process.msg import ProcessStepAction, ProcessStepGoal, ProcessState
 import actionlib
 from rqt_console import console_widget
 from rqt_console import message_proxy_model
 from rqt_plot import plot
 import rosservice
 import rviz
-import arm_composites_manufacturing_controller_commander as controller_commander_pkg
+import safe_kinematic_controller.ros.commander as controller_commander_pkg
 from panel_selector_window import PanelSelectorWindow
 import pyqtgraph as pg
-
-
+import threading
 '''
 freeBytes=QSemaphore(100)
 usedBytes=QSemaphore()
@@ -125,12 +125,6 @@ class VacuumConfirm(QWidget):
     def __init__(self):
         super(VacuumConfirm,self).__init__()
 
-
-
-
-
-
-
 class ConsoleThread(QThread):
     def __init__(self,State_info):
 		super(ConsoleThread,self).__init__()
@@ -157,10 +151,10 @@ class ExperimentGUI(Plugin):
     def __init__(self, context):
         super(ExperimentGUI, self).__init__(context)
         # Give QObjects reasonable names
-        self.plans=['Starting Position','Pickup Prepare','Pickup Lower','Pickup Grab','Pickup Raise','Transport Payload','Place Panel and Lift']
+        self.plans=['Starting Position','Pickup Grab','Transport Payload','Place Panel']
         self.setObjectName('MyPlugin')
-
-        #self.controller_commander=controller_commander_pkg.arm_composites_manufacturing_controller_commander()
+        self._lock=threading.Lock()
+        self.controller_commander=controller_commander_pkg.arm_composites_manufacturing_controller_commander()
         # Process standalone plugin command-line arguments
         from argparse import ArgumentParser
         parser = ArgumentParser()
@@ -176,8 +170,8 @@ class ExperimentGUI(Plugin):
         # Create QWidget
         self.in_process=None
         self.recover_from_pause=False
-        self.force_torque_plot=False
-        self.joint_angle_plot=False
+
+
         self._mainwidget = QWidget()
         self.layout = QGridLayout()
         self._mainwidget.setLayout(self.layout)
@@ -213,7 +207,7 @@ class ExperimentGUI(Plugin):
         self.count=0
         self.data_count=0
         self.force_torque_data=np.zeros((6,1))
-
+        self.joint_angle_data=np.zeros((6,1))
         # Get path to UI file which should be in the "resource" folder of this package
         self.welcomescreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'welcomeconnectionscreen.ui')
         self.runscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreen.ui')
@@ -263,6 +257,10 @@ class ExperimentGUI(Plugin):
 
         self._runscreen.planList.item(0).setSelected(True)
         self.planListIndex=0
+        self._runscreen.panelType.setText("Leeward Mid Panel")
+        self._runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
+
+        """
         self._runscreen.vacuum.setText("OFF")
         self._runscreen.panel.setText("Detached")
         self._runscreen.panelTag.setText("Not Localized")
@@ -271,8 +269,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.gripperCamera.setText("OFF")
         self._runscreen.forceSensor.setText("Biased to 0")
         self._runscreen.pressureSensor.setText("[0,0,0]")
-        self._runscreen.panelType.setText("Leeward Mid Panel")
-        self._runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
+
         self._runscreen.vacuum.setReadOnly(True)
         self._runscreen.panel.setReadOnly(True)
         self._runscreen.panelTag.setReadOnly(True)
@@ -281,8 +278,10 @@ class ExperimentGUI(Plugin):
         self._runscreen.gripperCamera.setReadOnly(True)
         self._runscreen.forceSensor.setReadOnly(True)
         self._runscreen.pressureSensor.setReadOnly(True)
+        """
         self._runscreen.panelType.setReadOnly(True)
         self._runscreen.placementNestTarget.setReadOnly(True)
+
         """
         self.above_panel=False
         self._widget.Speed_scalar.setInputMask("9.99")
@@ -291,7 +290,11 @@ class ExperimentGUI(Plugin):
         self._widget.Speed_scalar.textEdited.connect(self._change_values)
         """
         rospy.Subscriber("controller_state", controllerstate, self.callback)
+        self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode
+        rospy.Subscriber("process_state", ProcessState, self.process_state_set)
+
         self.force_torque_plot_widget=QWidget()
+        self.joint_angle_plot_widget=QWidget()
         self._welcomescreen.openConfig.clicked.connect(lambda: self.led_change(self.robotconnectionled,False))
         #self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_login_prompt)
         self._welcomescreen.toRunScreen.pressed.connect(self._to_run_screen)
@@ -327,13 +330,16 @@ class ExperimentGUI(Plugin):
         self.stackedWidget.setCurrentIndex(0)
 
     def _to_run_screen(self):
+        set_controller_mode(controller_commander.MODE_HALT,1,[],[])
+        if(self.stackedWidget.currentIndex()==0):
+            self.messagewindow=PanelSelectorWindow()
+            self.messagewindow.show()
+            self.messagewindow.setFixedSize(self.messagewindow.size())
         self.stackedWidget.setCurrentIndex(1)
-        self.messagewindow=PanelSelectorWindow()
-        self.messagewindow.show()
-        self.messagewindow.setFixedSize(self.messagewindow.size())
 
     def _to_error_screen(self):
         self.stackedWidget.setCurrentIndex(2)
+
 
     #def _open_overhead_camera_view(self):
 
@@ -345,15 +351,16 @@ class ExperimentGUI(Plugin):
     def _open_force_torque_data_plot(self):
         self.plot_container=[]
         self.x_data = np.arange(1)
-        y = np.random.normal(size=(3, 1000))
+
         self.force_torque_app=QApplication([])
 
         self.force_torque_plot_widget=pg.plot()
+        self.force_torque_plot_widget.addLegend()
         #self.layout.addWidget(self.force_torque_plot_widget,0,1)
 
         self.force_torque_plot_widget.showGrid(x=True, y=True)
-        self.force_torque_plot_widget.setLabel('left','amplitude','uV')
-        self.force_torque_plot_widget.setLabel('bottom','time','s')
+        self.force_torque_plot_widget.setLabel('left','Force/Torque','N/N*m')
+        self.force_torque_plot_widget.setLabel('bottom','Sample Number','n')
 
         self.plot_container.append(self.force_torque_plot_widget.plot(pen=(255,0,0),name="Torque X"))
         self.plot_container.append(self.force_torque_plot_widget.plot(pen=(0,255,0),name="Torque Y"))
@@ -365,7 +372,7 @@ class ExperimentGUI(Plugin):
 
         #self.force_torque_plotter=PlotManager(title='Force Torque Data',nline=3,widget=self.force_torque_plot_widget)
         #self.force_torque_plot_widget.show()
-        self.force_torque_plot=True
+
         #self.force_torque_plotter.add("Hello", np.arange(10))
         #self.force_torque_plotter.update()
 
@@ -373,7 +380,27 @@ class ExperimentGUI(Plugin):
         #self.rosGraph.show()
         #self.rosGraph.exec_()
     def _open_joint_angle_data_plot(self):
-        self.rosGraph=RQTPlotWindow(self.context)
+        self.plot_container=[]
+        self.x_data = np.arange(1)
+
+        self.joint_angle_app=QApplication([])
+
+        self.joint_angle_plot_widget=pg.plot()
+        self.joint_angle_plot_widget.addLegend()
+        #self.layout.addWidget(self.joint_angle_plot_widget,0,1)
+
+        self.joint_angle_plot_widget.showGrid(x=True, y=True)
+        self.joint_angle_plot_widget.setLabel('left','Force/Torque','N/N*m')
+        self.joint_angle_plot_widget.setLabel('bottom','Sample Number','n')
+
+        self.plot_container.append(self.joint_angle_plot_widget.plot(pen=(255,0,0),name="Joint 1"))
+        self.plot_container.append(self.joint_angle_plot_widget.plot(pen=(0,255,0),name="Joint 2"))
+        self.plot_container.append(self.joint_angle_plot_widget.plot(pen=(0,0,255),name="Joint 3"))
+        self.plot_container.append(self.joint_angle_plot_widget.plot(pen=(255,255,0),name="Joint 4"))
+        self.plot_container.append(self.joint_angle_plot_widget.plot(pen=(0,255,255),name="Joint 5"))
+        self.plot_container.append(self.joint_angle_plot_widget.plot(pen=(255,0,255),name="Joint 6"))
+        self.plot_container.append(self.joint_angle_plot_widget.plot(pen=(255,255,255),name="Joint 7"))
+
 
     def _open_rviz_prompt(self):
         subprocess.Popen(['python', self.rviz_starter])
@@ -396,6 +423,9 @@ class ExperimentGUI(Plugin):
         #TODO: using client.get_state can implemen action state recall to eliminate plan from moveit?
     #TODO: make it so that next plan throws it back into automatic mode every time and then teleop switches to teleop mode and plans the next move
     def _nextPlan(self):
+        self._runscreen.nextPlan.setDisabled(True)
+        self._runscreen.previousPlan.setDisabled(True)
+        self._runscreen.resetToHome.setDisabled(True)
         if(self.planListIndex+1==self._runscreen.planList.count()):
             self.planListIndex=0
         elif self.recover_from_pause:
@@ -410,6 +440,7 @@ class ExperimentGUI(Plugin):
 
         if(self.planListIndex==0):
             subprocess.Popen(['python', self.reset_code])
+            """
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Not Localized")
@@ -418,10 +449,12 @@ class ExperimentGUI(Plugin):
             self._runscreen.gripperCamera.setText("OFF")
             self._runscreen.forceSensor.setText("Biased to 0")
             self._runscreen.pressureSensor.setText("[0,0,0]")
+            """
         elif(self.planListIndex==1):
 
             self._execute_step('plan_pickup_prepare',self.panel_type)
             self._execute_step('move_pickup_prepare')
+            """
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -430,9 +463,11 @@ class ExperimentGUI(Plugin):
             self._runscreen.gripperCamera.setText("OFF")
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[0,0,0]")
+            """
         elif(self.planListIndex==2):
             self._execute_step('plan_pickup_lower')
             self._execute_step('move_pickup_lower')
+            """
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -441,11 +476,13 @@ class ExperimentGUI(Plugin):
             self._runscreen.gripperCamera.setText("OFF")
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[0,0,0]")
+            """
         elif(self.planListIndex==3):
             self._execute_step('plan_pickup_grab_first_step')
             self._execute_step('move_pickup_grab_first_step')
             self._execute_step('plan_pickup_grab_second_step')
             self._execute_step('move_pickup_grab_second_step')
+            """
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -454,9 +491,11 @@ class ExperimentGUI(Plugin):
             self._runscreen.gripperCamera.setText("OFF")
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[1,1,1]")
+            """
         elif(self.planListIndex==4):
             self._execute_step('plan_pickup_raise')
             self._execute_step('move_pickup_raise')
+            """
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -465,9 +504,11 @@ class ExperimentGUI(Plugin):
             self._runscreen.gripperCamera.setText("OFF")
             self._runscreen.forceSensor.setText("OFF")
             self._runscreen.pressureSensor.setText("[1,1,1]")
+            """
         elif(self.planListIndex==5):
             self._execute_step('plan_transport_payload',self.placement_target)
             self._execute_step('move_transport_payload')
+            """
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -476,8 +517,10 @@ class ExperimentGUI(Plugin):
             self._runscreen.gripperCamera.setText("OFF")
             self._runscreen.forceSensor.setText("OFF")
             self._runscreen.pressureSensor.setText("[1,1,1]")
+            """
         elif(self.planListIndex==6):
             subprocess.Popen(['python', self.YC_place_code])
+            """
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -486,7 +529,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.gripperCamera.setText("ON")
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[0,0,0]")
-
+            """
 
 
 
@@ -514,14 +557,6 @@ class ExperimentGUI(Plugin):
             self.planListIndex=0
             self._runscreen.planList.item(self.planListIndex).setSelected(True)
             subprocess.Popen(['python', self.reset_code])
-            self._runscreen.vacuum.setText("OFF")
-            self._runscreen.panel.setText("Detached")
-            self._runscreen.panelTag.setText("Not Localized")
-            self._runscreen.nestTag.setText("Not Localized")
-            self._runscreen.overheadCamera.setText("OFF")
-            self._runscreen.gripperCamera.setText("OFF")
-            self._runscreen.forceSensor.setText("Biased to 0")
-            self._runscreen.pressureSensor.setText("[0,0,0]")
         else:
             rospy.loginfo("Reset Rejected")   
 
@@ -544,111 +579,134 @@ class ExperimentGUI(Plugin):
             self._execute_step('plan_pickup_raise')
         elif(self.planListIndex==5):
             self._execute_step('plan_transport_payload',self.placement_target)
-        self.controller_commander.set_controller_mode(self.controller_commander.MODE_SHARED_TRAJECTORY, 0, [])
+        self.set_controller_mode(self.controller_commander.MODE_SHARED_TRAJECTORY, 1, [],[])
+
+    def set_controller_mode(self,mode,speed_scalar=1.0,ft_bias=[], ft_threshold=[]):
+        req=SetControllerModeRequest()
+        req.mode.mode=mode
+        req.speed_scalar=speed_scalar
+        req.ft_bias=ft_bias
+        req.ft_stop_threshold=ft_threshold
+        res=self._set_controller_mode(req)
+        if (res.error_code.mode != ControllerMode.MODE_SUCCESS): raise Exception("Could not set controller mode")
+
+    def process_state_set(self,data):
+        self.planListIndexname=data.state
+        self._runscreen.nextPlan.setDisabled(False)
+        self._runscreen.previousPlan.setDisabled(False)
+        self._runscreen.resetToHome.setDisabled(False)
 
     def callback(self,data):
         #self._widget.State_info.append(data.mode)
-        if(self.stackedWidget.currentIndex()==2):
+        with self._lock:
+            if(self.stackedWidget.currentIndex()==2):
+                if(self.count>10):
+                #stringdata=str(data.mode)
+                #freeBytes.acquire()
+                #####consoleData.append(str(data.mode))
+                    self._errordiagnosticscreen.consoleWidget_2.addItem(str(data.joint_position))
+                    self.count=0
+
+                    #print data.joint_position
+
+                self.count+=1
+                #self._widget.State_info.scrollToBottom()
+                #usedBytes.release()
+                #self._data_array.append(stringdata)
+                #print self._widget.State_info.count()
+                if(self._errordiagnosticscreen.consoleWidget_2.count()>200):
+
+                    item=self._errordiagnosticscreen.consoleWidget_2.takeItem(0)
+                    #print "Hello Im maxed out"
+                    del item
+
+            '''
+            if self.in_process:
+                if self.client.get_state() == actionlib.GoalStatus.PENDING or self.client.get_state() == actionlib.GoalStatus.ACTIVE:
+                    self._runscreen.nextPlan.setDisabled(True)
+                    self._runscreen.previousPlan.setDisabled(True)
+                    self._runscreen.resetToHome.setDisabled(True)
+                    rospy.loginfo("Pending")
+                elif self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
+                    self._runscreen.nextPlan.setDisabled(False)
+                    self._runscreen.previousPlan.setDisabled(False)
+                    self._runscreen.resetToHome.setDisabled(False)
+                    self.in_process=False
+                    rospy.loginfo("Succeeded")
+                elif self.client.get_state() == actionlib.GoalStatus.ABORTED:
+                    self.in_process=False
+                    if(not self.recover_from_pause):
+                        raise Exception("Process step failed and aborted")
+
+                elif self.client.get_state() == actionlib.GoalStatus.REJECTED:
+                    self.in_process=False
+                    raise Exception("Process step failed and Rejected")
+                elif self.client.get_state() == actionlib.GoalStatus.LOST:
+                    self.in_process=False
+                    raise Exception("Process step failed and lost")
+            '''
             if(self.count>10):
-            #stringdata=str(data.mode)
-            #freeBytes.acquire()
-            #####consoleData.append(str(data.mode))
-                self._errordiagnosticscreen.consoleWidget_2.addItem(str(data.joint_position))
                 self.count=0
+                if(data.mode.mode<0):
+                    self.stackedWidget.setCurrentIndex(2)
+                    #messagewindow=VacuumConfirm()
+                    #reply = QMessageBox.question(messagewindow, 'Connection Lost',
+                             #    'Robot Connection Lost, Return to Welcome Screen?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                    #if reply==QMessageBox.Yes:
+                     #
+                     #   self.disconnectreturnoption=False
+                    #else:
+           #             self.disconnectreturnoption=True
 
-                #print data.joint_position
+                    self.led_change(self.robotconnectionled,False)
+                else:
+                    self.led_change(self.robotconnectionled,True)
+                if(data.ft_wrench_valid=="False"):
+                    self.stackedWidget.setCurrentIndex(0)
 
-            self.count+=1
-            #self._widget.State_info.scrollToBottom()
-            #usedBytes.release()
-            #self._data_array.append(stringdata)
-            #print self._widget.State_info.count()
-            if(self._errordiagnosticscreen.consoleWidget_2.count()>200):
+                    self.led_change(self.forcetorqueled,False)
+                else:
 
-                item=self._errordiagnosticscreen.consoleWidget_2.takeItem(0)
-                #print "Hello Im maxed out"
-                del item
+                    self.led_change(self.forcetorqueled,True)
 
-        if self.in_process:
-            if self.client.get_state() == actionlib.GoalStatus.PENDING or self.client.get_state() == actionlib.GoalStatus.ACTIVE:
-                self._runscreen.nextPlan.setDisabled(True)
-                self._runscreen.previousPlan.setDisabled(True)
-                self._runscreen.resetToHome.setDisabled(True)
-                rospy.loginfo("Pending")
-            elif self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
-                self._runscreen.nextPlan.setDisabled(False)
-                self._runscreen.previousPlan.setDisabled(False)
-                self._runscreen.resetToHome.setDisabled(False)
-                self.in_process=False
-                rospy.loginfo("Succeeded")
-            elif self.client.get_state() == actionlib.GoalStatus.ABORTED:
-                self.in_process=False
-                if(not self.recover_from_pause):
-                    raise Exception("Process step failed and aborted")
-
-            elif self.client.get_state() == actionlib.GoalStatus.REJECTED:
-                self.in_process=False
-                raise Exception("Process step failed and Rejected")
-            elif self.client.get_state() == actionlib.GoalStatus.LOST:
-                self.in_process=False
-                raise Exception("Process step failed and lost")
-
-        if(self.count>10):
-            self.count=0
-            if(data.error_msg=="No data received from robot"):
-                #self.stackedWidget.setCurrentIndex(0)
-                #messagewindow=VacuumConfirm()
-                #reply = QMessageBox.question(messagewindow, 'Connection Lost',
-                         #    'Robot Connection Lost, Return to Welcome Screen?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-                #if reply==QMessageBox.Yes:
-                 #
+                #if(self.disconnectreturnoption and data.error_msg==""):
                  #   self.disconnectreturnoption=False
-                #else:
-       #             self.disconnectreturnoption=True
+            self.count+=1
 
-                self.led_change(self.robotconnectionled,False)
-            else:
-                self.led_change(self.robotconnectionled,True)
-            if(data.ft_wrench_valid=="False"):
-                self.stackedWidget.setCurrentIndex(0)
+            if(not self.force_torque_plot_widget.isHidden()):
+                self.x_data=np.concatenate((self.x_data,[data.header.seq]))
+                incoming=np.array([data.ft_wrench.torque.x,data.ft_wrench.torque.y,data.ft_wrench.torque.z,data.ft_wrench.force.x,data.ft_wrench.force.y,data.ft_wrench.force.z]).reshape(6,1)
+                self.force_torque_data=np.concatenate((self.force_torque_data,incoming),axis=1)
 
-                self.led_change(self.forcetorqueled,False)
-            else:
+                if(self.data_count>500):
+                    self.force_torque_data=self.force_torque_data[...,1:]
+                    self.x_data=self.x_data[1:]
+                    self.force_torque_plot_widget.setRange(xRange=(self.x_data[1],self.x_data[-1]))
+                else:
+                    self.data_count+=1
+                for i in range(6):
+                    self.plot_container[i].setData(self.x_data,self.force_torque_data[i,...])
+                self.force_torque_app.processEvents()
 
-                self.led_change(self.forcetorqueled,True)
+            if(not self.joint_angle_plot_widget.isHidden()):
+                self.x_data=np.concatenate((self.x_data,[data.header.seq]))
+                incoming=np.array([data.ft_wrench.torque.x,data.ft_wrench.torque.y,data.ft_wrench.torque.z,data.ft_wrench.force.x,data.ft_wrench.force.y,data.ft_wrench.force.z]).reshape(7,1)
+                self.joint_angle_data=np.concatenate((self.joint_angle_data,incoming),axis=1)
 
-            #if(self.disconnectreturnoption and data.error_msg==""):
-             #   self.disconnectreturnoption=False
-        self.count+=1
+                if(self.data_count>500):
+                    self.joint_angle_data=self.joint_angle_data[...,1:]
+                    self.x_data=self.x_data[1:]
+                    self.joint_angle_plot_widget.setRange(xRange=(self.x_data[1],self.x_data[-1]))
+                else:
+                    self.data_count+=1
+                for i in range(7):
+                    self.plot_container[i].setData(self.x_data,self.joint_angle_data[i,...])
+                self.joint_angle_app.processEvents()
+                #if(len(self._data_array)>10):
+            #	for x in self._data_array:
+            #		self._widget.State_info.append(x)
 
-        if(not self.force_torque_plot_widget.isHidden()):
-            self.x_data=np.concatenate((self.x_data,[data.header.seq]))
-            incoming=np.array([data.ft_wrench.torque.x,data.ft_wrench.torque.y,data.ft_wrench.torque.z,data.ft_wrench.force.x,data.ft_wrench.force.y,data.ft_wrench.force.z]).reshape(6,1)
-            self.force_torque_data=np.concatenate((self.force_torque_data,incoming),axis=1)
 
-            if(self.data_count>500):
-                self.force_torque_data=self.force_torque_data[...,1:]
-                self.x_data=self.x_data[1:]
-                self.force_torque_plot_widget.setRange(xRange=(self.x_data[1],self.x_data[-1]))
-            else:
-                self.data_count+=1
-            for i in range(6):
-                self.plot_container[i].setData(self.x_data,self.force_torque_data[i,...])
-            self.force_torque_app.processEvents()
-            #if(len(self._data_array)>10):
-        #	for x in self._data_array:
-        #		self._widget.State_info.append(x)
-    def change_controller_state(self,mode,speed_scalar,ft_threshold):
-        self.mode=mode
-
-        #self.armcontroller.set_controller(mode,speed_scalar,ft_threshold)
-        #self._widget.Speed_scalar_display.setText(str(speed_scalar))
-        if(len(ft_threshold)>0):
-            self._widget.Ft_threshold_display.setText(str(ft_threshold[0]))
-        else:
-            self._widget.Ft_threshold_display.setText(str("None"))
-        self._widget.Mode_display.setText(str(mode))
-		
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
