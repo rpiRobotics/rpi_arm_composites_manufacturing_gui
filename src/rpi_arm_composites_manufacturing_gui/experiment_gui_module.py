@@ -151,7 +151,12 @@ class ExperimentGUI(Plugin):
     def __init__(self, context):
         super(ExperimentGUI, self).__init__(context)
         # Give QObjects reasonable names
-        self.plans=['Starting Position','Pickup Grab','Transport Payload','Place Panel']
+        self.plans=['Starting Position','Above Panel', 'Panel Grabbed','Above Placement Nest','Panel Placed']
+        #state_dict ties each state to planlistindex values
+        self.state_dict={'reset_position':0,'pickup_prepare':1,'pickup_lower':2,'pickup_grab_first_step':2,'pickup_grab_second_step':2,'pickup_raise':2,'transport_panel':3,'place_lower':4,'place_set_first_step':4,'place_set_second_step':4,'place_raise':4}
+        self.execute_states=[['plan_to_reset_position','move_to_reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
+                            ['plan_transport_payload','move_transport_payload']]
+
         self.setObjectName('MyPlugin')
         self._lock=threading.Lock()
         self.controller_commander=controller_commander_pkg.arm_composites_manufacturing_controller_commander()
@@ -311,6 +316,7 @@ class ExperimentGUI(Plugin):
         self._errordiagnosticscreen.backToRun.pressed.connect(self._to_run_screen)
         #self._runscreen.widget.frame=rviz.VisualizationFrame()
         #self._runscreen.widget.frame.setSplashPath( "" )
+        self.last_step=None
 
         ## VisualizationFrame.initialize() must be called before
         ## VisualizationFrame.load().  In fact it must be called
@@ -420,6 +426,7 @@ class ExperimentGUI(Plugin):
         self.in_process=True
 
         print client.get_result()
+        self.last_step=step
         #TODO: using client.get_state can implemen action state recall to eliminate plan from moveit?
     #TODO: make it so that next plan throws it back into automatic mode every time and then teleop switches to teleop mode and plans the next move
     def _nextPlan(self):
@@ -467,6 +474,12 @@ class ExperimentGUI(Plugin):
         elif(self.planListIndex==2):
             self._execute_step('plan_pickup_lower')
             self._execute_step('move_pickup_lower')
+            self._execute_step('plan_pickup_grab_first_step')
+            self._execute_step('move_pickup_grab_first_step')
+            self._execute_step('plan_pickup_grab_second_step')
+            self._execute_step('move_pickup_grab_second_step')
+            self._execute_step('plan_pickup_raise')
+            self._execute_step('move_pickup_raise')
             """
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
@@ -478,10 +491,8 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
             """
         elif(self.planListIndex==3):
-            self._execute_step('plan_pickup_grab_first_step')
-            self._execute_step('move_pickup_grab_first_step')
-            self._execute_step('plan_pickup_grab_second_step')
-            self._execute_step('move_pickup_grab_second_step')
+            self._execute_step('plan_transport_payload',self.placement_target)
+            self._execute_step('move_transport_payload')
             """
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
@@ -493,42 +504,16 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[1,1,1]")
             """
         elif(self.planListIndex==4):
-            self._execute_step('plan_pickup_raise')
-            self._execute_step('move_pickup_raise')
-            """
-            self._runscreen.vacuum.setText("ON")
-            self._runscreen.panel.setText("Attached")
-            self._runscreen.panelTag.setText("Localized")
-            self._runscreen.nestTag.setText("Not Localized")
-            self._runscreen.overheadCamera.setText("OFF")
-            self._runscreen.gripperCamera.setText("OFF")
-            self._runscreen.forceSensor.setText("OFF")
-            self._runscreen.pressureSensor.setText("[1,1,1]")
-            """
-        elif(self.planListIndex==5):
-            self._execute_step('plan_transport_payload',self.placement_target)
-            self._execute_step('move_transport_payload')
-            """
-            self._runscreen.vacuum.setText("ON")
-            self._runscreen.panel.setText("Attached")
-            self._runscreen.panelTag.setText("Localized")
-            self._runscreen.nestTag.setText("Not Localized")
-            self._runscreen.overheadCamera.setText("OFF")
-            self._runscreen.gripperCamera.setText("OFF")
-            self._runscreen.forceSensor.setText("OFF")
-            self._runscreen.pressureSensor.setText("[1,1,1]")
-            """
-        elif(self.planListIndex==6):
             subprocess.Popen(['python', self.YC_place_code])
             """
-            self._runscreen.vacuum.setText("OFF")
-            self._runscreen.panel.setText("Detached")
+            self._runscreen.vacuum.setText("ON")
+            self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
-            self._runscreen.nestTag.setText("Localized")
+            self._runscreen.nestTag.setText("Not Localized")
             self._runscreen.overheadCamera.setText("OFF")
-            self._runscreen.gripperCamera.setText("ON")
-            self._runscreen.forceSensor.setText("ON")
-            self._runscreen.pressureSensor.setText("[0,0,0]")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("OFF")
+            self._runscreen.pressureSensor.setText("[1,1,1]")
             """
 
 
@@ -592,6 +577,7 @@ class ExperimentGUI(Plugin):
 
     def process_state_set(self,data):
         self.planListIndexname=data.state
+        self.in_process=False
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
