@@ -28,6 +28,7 @@ import rosservice
 import rviz
 import safe_kinematic_controller.ros.commander as controller_commander_pkg
 from panel_selector_window import PanelSelectorWindow
+#TODO Integrate pyqtgraph into automatic package download
 import pyqtgraph as pg
 import threading
 '''
@@ -159,7 +160,7 @@ class ExperimentGUI(Plugin):
 
         self.setObjectName('MyPlugin')
         self._lock=threading.Lock()
-        self.controller_commander=controller_commander_pkg.arm_composites_manufacturing_controller_commander()
+        self.controller_commander=controller_commander_pkg.ControllerCommander()
         # Process standalone plugin command-line arguments
         from argparse import ArgumentParser
         parser = ArgumentParser()
@@ -201,8 +202,8 @@ class ExperimentGUI(Plugin):
         self.overheadcameraled.setDisabled(True)  # Make the led non clickable
         self.grippercameraled=LEDIndicator()
         self.grippercameraled.setDisabled(True)  # Make the led non clickable
-        #self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
-        #self.client.wait_for_server()
+        self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
+        self.client.wait_for_server()
         self.placement_target='panel_nest_leeward_mid_panel_target'
         self.panel_type='leeward_mid_panel'
 
@@ -295,7 +296,7 @@ class ExperimentGUI(Plugin):
         self._widget.Speed_scalar.textEdited.connect(self._change_values)
         """
         rospy.Subscriber("controller_state", controllerstate, self.callback)
-        self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode
+        self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
         rospy.Subscriber("process_state", ProcessState, self.process_state_set)
 
         self.force_torque_plot_widget=QWidget()
@@ -336,7 +337,7 @@ class ExperimentGUI(Plugin):
         self.stackedWidget.setCurrentIndex(0)
 
     def _to_run_screen(self):
-        set_controller_mode(controller_commander.MODE_HALT,1,[],[])
+        self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
         if(self.stackedWidget.currentIndex()==0):
             self.messagewindow=PanelSelectorWindow()
             self.messagewindow.show()
@@ -440,7 +441,7 @@ class ExperimentGUI(Plugin):
         else:
             self.planListIndex+=1
         #self._open_rviz_prompt()
-        self._raise_rviz_window()
+        #self._raise_rviz_window()
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
         time.sleep(1)
@@ -483,7 +484,7 @@ class ExperimentGUI(Plugin):
             """
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
-            self._runscreen.panelTag.setText("Localized")
+            self._runscreen.panelTag.setText("Localized")self.controller_commander=controller_commander_pkg.arm_composites_manufacturing_controller_commander()
             self._runscreen.nestTag.setText("Not Localized")
             self._runscreen.overheadCamera.setText("OFF")
             self._runscreen.gripperCamera.setText("OFF")
@@ -634,7 +635,7 @@ class ExperimentGUI(Plugin):
             if(self.count>10):
                 self.count=0
                 if(data.mode.mode<0):
-                    self.stackedWidget.setCurrentIndex(2)
+                    #self.stackedWidget.setCurrentIndex(2)
                     #messagewindow=VacuumConfirm()
                     #reply = QMessageBox.question(messagewindow, 'Connection Lost',
                              #    'Robot Connection Lost, Return to Welcome Screen?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
