@@ -445,8 +445,12 @@ class ExperimentGUI(Plugin):
             print client.get_result()
 
             self._send_event.clear()
+        self._runscreen.nextPlan.setDisabled(False)
+        self._runscreen.previousPlan.setDisabled(False)
+        self._runscreen.resetToHome.setDisabled(False)
         if( not self.recover_from_pause):
             self.last_step=0
+
         #TODO: using client.get_state can implemen action state recall to eliminate plan from moveit?
     #TODO: make it so that next plan throws it back into automatic mode every time and then teleop switches to teleop mode and plans the next move
     def _nextPlan(self):
@@ -603,9 +607,7 @@ class ExperimentGUI(Plugin):
     def process_state_set(self,data):
         self.planListIndexname=data.state
         self._send_event.set()
-        self._runscreen.nextPlan.setDisabled(False)
-        self._runscreen.previousPlan.setDisabled(False)
-        self._runscreen.resetToHome.setDisabled(False)
+
 
     def callback(self,data):
         #self._widget.State_info.append(data.mode)
