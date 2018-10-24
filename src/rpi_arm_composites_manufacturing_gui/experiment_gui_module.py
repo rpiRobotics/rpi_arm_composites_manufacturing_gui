@@ -155,11 +155,13 @@ class ExperimentGUI(Plugin):
         self.plans=['Starting Position','Above Panel', 'Panel Grabbed','Above Placement Nest','Panel Placed']
         #state_dict ties each state to planlistindex values
         self.state_dict={'reset_position':0,'pickup_prepare':1,'pickup_lower':2,'pickup_grab_first_step':2,'pickup_grab_second_step':2,'pickup_raise':2,'transport_panel':3,'place_lower':4,'place_set_first_step':4,'place_set_second_step':4,'place_raise':4}
+
         self.execute_states=[['plan_to_reset_position','move_to_reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
                             ['plan_transport_payload','move_transport_payload']]
 
         self.setObjectName('MyPlugin')
         self._lock=threading.Lock()
+        self._send_event=threading.Event()
         self.controller_commander=controller_commander_pkg.ControllerCommander()
         # Process standalone plugin command-line arguments
         from argparse import ArgumentParser
@@ -418,16 +420,33 @@ class ExperimentGUI(Plugin):
     def _raise_rviz_window(self):
         subprocess.call(["xdotool", "search", "--name", "rviz", "windowraise"])
 
-    def _execute_step(self,step, target=""):
-        client=self.client
-        g=ProcessStepGoal(step, target)
-        while(self.in_process==True):
-            pass
-        client.send_goal(g)
-        self.in_process=True
+    def _execute_steps(self,steps_index,resume_index=0, target="",target_index=-1):
+        #TODO Create separate thread for each execution step that waits until in_process is true
+        for step_num in range(resume_index,len(self.execute_states[steps_index,:])):
 
-        print client.get_result()
-        self.last_step=step
+            client=self.client
+            if(step_num==target_index):
+                g=ProcessStepGoal(self.execute_states[steps_index,step_num], target)
+            else:
+                g=ProcessStepGoal(self.execute_states[steps_index,step_num], "")
+
+            self._send_event.wait()
+            if(self.recover_from_pause):
+                if('plan' in self.execute_states[steps_index,step_num]):
+                    self.last_step=step_num
+                else:
+                    self.last_step=step_num-1
+                self._send_event.clear()
+                break
+            client.send_goal(g)
+
+            #self.in_process=True
+
+            print client.get_result()
+
+            self._send_event.clear()
+        if( not self.recover_from_pause):
+            self.last_step=0
         #TODO: using client.get_state can implemen action state recall to eliminate plan from moveit?
     #TODO: make it so that next plan throws it back into automatic mode every time and then teleop switches to teleop mode and plans the next move
     def _nextPlan(self):
@@ -459,9 +478,9 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
             """
         elif(self.planListIndex==1):
-
-            self._execute_step('plan_pickup_prepare',self.panel_type)
-            self._execute_step('move_pickup_prepare')
+            self.send_thread=threading.Thread(target=self._execute_step,args=(1,self.last_step, self.panel_type,0))
+            #self._execute_step('plan_pickup_prepare',self.panel_type)
+            #self._execute_step('move_pickup_prepare')
             """
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
@@ -473,6 +492,8 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
             """
         elif(self.planListIndex==2):
+            self.send_thread=threading.Thread(target=self._execute_step,args=(2,self.last_step))
+            """
             self._execute_step('plan_pickup_lower')
             self._execute_step('move_pickup_lower')
             self._execute_step('plan_pickup_grab_first_step')
@@ -481,7 +502,7 @@ class ExperimentGUI(Plugin):
             self._execute_step('move_pickup_grab_second_step')
             self._execute_step('plan_pickup_raise')
             self._execute_step('move_pickup_raise')
-            """
+
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")self.controller_commander=controller_commander_pkg.arm_composites_manufacturing_controller_commander()
@@ -492,9 +513,11 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
             """
         elif(self.planListIndex==3):
+            self.send_thread=threading.Thread(target=self._execute_step,args=(3,self.last_step,self.placement_target,0))
+            """
             self._execute_step('plan_transport_payload',self.placement_target)
             self._execute_step('move_transport_payload')
-            """
+
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -529,10 +552,11 @@ class ExperimentGUI(Plugin):
     def _stopPlan(self):
         #client=self.client
         #
-        self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT, 0, [])
+        self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT, 0,[], [])
         client=self.client
         client.cancel_all_goals()
         self.recover_from_pause=True
+        self._send_event.set()
 
 
     def _reset_position(self):
@@ -578,7 +602,7 @@ class ExperimentGUI(Plugin):
 
     def process_state_set(self,data):
         self.planListIndexname=data.state
-        self.in_process=False
+        self._send_event.set()
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
