@@ -319,7 +319,8 @@ class ExperimentGUI(Plugin):
         self._errordiagnosticscreen.backToRun.pressed.connect(self._to_run_screen)
         #self._runscreen.widget.frame=rviz.VisualizationFrame()
         #self._runscreen.widget.frame.setSplashPath( "" )
-        self.last_step=None
+        self.last_step=0
+        self.commands_sent=False
 
         ## VisualizationFrame.initialize() must be called before
         ## VisualizationFrame.load().  In fact it must be called
@@ -422,17 +423,19 @@ class ExperimentGUI(Plugin):
 
     def _execute_steps(self,steps_index,resume_index=0, target="",target_index=-1):
         #TODO Create separate thread for each execution step that waits until in_process is true
-        for step_num in range(resume_index,len(self.execute_states[steps_index,:])):
+        rospy.loginfo("Entered _execute_steps")
+
+        for step_num in range(resume_index,len(self.execute_states[steps_index])):
 
             client=self.client
             if(step_num==target_index):
-                g=ProcessStepGoal(self.execute_states[steps_index,step_num], target)
+                g=ProcessStepGoal(self.execute_states[steps_index][step_num], target)
             else:
-                g=ProcessStepGoal(self.execute_states[steps_index,step_num], "")
+                g=ProcessStepGoal(self.execute_states[steps_index][step_num], "")
 
             self._send_event.wait()
             if(self.recover_from_pause):
-                if('plan' in self.execute_states[steps_index,step_num]):
+                if('plan' in self.execute_states[steps_index][step_num]):
                     self.last_step=step_num
                 else:
                     self.last_step=step_num-1
@@ -445,9 +448,9 @@ class ExperimentGUI(Plugin):
             print client.get_result()
 
             self._send_event.clear()
-        self._runscreen.nextPlan.setDisabled(False)
-        self._runscreen.previousPlan.setDisabled(False)
-        self._runscreen.resetToHome.setDisabled(False)
+
+        self.commands_sent=True
+
         if( not self.recover_from_pause):
             self.last_step=0
 
@@ -457,6 +460,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.nextPlan.setDisabled(True)
         self._runscreen.previousPlan.setDisabled(True)
         self._runscreen.resetToHome.setDisabled(True)
+        rospy.loginfo("next plan")
         if(self.planListIndex+1==self._runscreen.planList.count()):
             self.planListIndex=0
         elif self.recover_from_pause:
@@ -482,7 +486,11 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
             """
         elif(self.planListIndex==1):
-            self.send_thread=threading.Thread(target=self._execute_step,args=(1,self.last_step, self.panel_type,0))
+            self.send_thread=threading.Thread(target=self._execute_steps,args=(1,self.last_step, self.panel_type,0))
+            rospy.loginfo("thread_started")
+            self.send_thread.setDaemon(True)
+            self.send_thread.start()
+            self._send_event.set()
             #self._execute_step('plan_pickup_prepare',self.panel_type)
             #self._execute_step('move_pickup_prepare')
             """
@@ -496,7 +504,10 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
             """
         elif(self.planListIndex==2):
-            self.send_thread=threading.Thread(target=self._execute_step,args=(2,self.last_step))
+            self.send_thread=threading.Thread(target=self._execute_steps,args=(2,self.last_step))
+            self.send_thread.setDaemon(True)
+            self.send_thread.start()
+            self._send_event.set()
             """
             self._execute_step('plan_pickup_lower')
             self._execute_step('move_pickup_lower')
@@ -517,7 +528,10 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
             """
         elif(self.planListIndex==3):
-            self.send_thread=threading.Thread(target=self._execute_step,args=(3,self.last_step,self.placement_target,0))
+            self.send_thread=threading.Thread(target=self._execute_steps,args=(3,self.last_step,self.placement_target,0))
+            self.send_thread.setDaemon(True)
+            self.send_thread.start()
+            self._send_event.set()
             """
             self._execute_step('plan_transport_payload',self.placement_target)
             self._execute_step('move_transport_payload')
@@ -561,6 +575,9 @@ class ExperimentGUI(Plugin):
         client.cancel_all_goals()
         self.recover_from_pause=True
         self._send_event.set()
+        self._runscreen.nextPlan.setDisabled(False)
+        self._runscreen.previousPlan.setDisabled(False)
+        self._runscreen.resetToHome.setDisabled(False)
 
 
     def _reset_position(self):
@@ -607,6 +624,10 @@ class ExperimentGUI(Plugin):
     def process_state_set(self,data):
         self.planListIndexname=data.state
         self._send_event.set()
+        if(self.commands_sent):
+            self._runscreen.nextPlan.setDisabled(False)
+            self._runscreen.previousPlan.setDisabled(False)
+            self._runscreen.resetToHome.setDisabled(False)
 
 
     def callback(self,data):
