@@ -268,35 +268,9 @@ class ExperimentGUI(Plugin):
         self._runscreen.panelType.setText("Leeward Mid Panel")
         self._runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
 
-        """
-        self._runscreen.vacuum.setText("OFF")
-        self._runscreen.panel.setText("Detached")
-        self._runscreen.panelTag.setText("Not Localized")
-        self._runscreen.nestTag.setText("Not Localized")
-        self._runscreen.overheadCamera.setText("OFF")
-        self._runscreen.gripperCamera.setText("OFF")
-        self._runscreen.forceSensor.setText("Biased to 0")
-        self._runscreen.pressureSensor.setText("[0,0,0]")
-
-        self._runscreen.vacuum.setReadOnly(True)
-        self._runscreen.panel.setReadOnly(True)
-        self._runscreen.panelTag.setReadOnly(True)
-        self._runscreen.nestTag.setReadOnly(True)
-        self._runscreen.overheadCamera.setReadOnly(True)
-        self._runscreen.gripperCamera.setReadOnly(True)
-        self._runscreen.forceSensor.setReadOnly(True)
-        self._runscreen.pressureSensor.setReadOnly(True)
-        """
         self._runscreen.panelType.setReadOnly(True)
         self._runscreen.placementNestTarget.setReadOnly(True)
 
-        """
-        self.above_panel=False
-        self._widget.Speed_scalar.setInputMask("9.99")
-        self._widget.Speed_scalar.setText("1.00")
-        self._widget.Vacuum.toggled.connect(self._handle_vacuum_change)
-        self._widget.Speed_scalar.textEdited.connect(self._change_values)
-        """
         rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
         rospy.Subscriber("process_state", ProcessState, self.process_state_set)
@@ -682,7 +656,39 @@ class ExperimentGUI(Plugin):
             if(self.count>10):
                 self.count=0
                 if(data.mode.mode<0):
-                    #self.stackedWidget.setCurrentIndex(2)
+                    self.stackedWidget.setCurrentIndex(2)
+                    if(data.mode.mode==-5 or data.mode.mode==-6):
+                        error_msg="Error mode %d : Controller is not synched or is in Invalid State" %data.mode.mode
+                        self._errordiagnosticscreen.errorLog.setPlainText(error_msg)
+                    if(data.mode.mode==-3 or data.mode.mode==-2):
+                        error_msg="Error mode %d : Controller operation or argument is invalid" %data.mode.mode
+                        self._errordiagnosticscreen.errorLog.setPlainText(error_msg)
+
+                    if(data.mode.mode==-13 or data.mode.mode==-14):
+                        error_msg="Error mode %d : Sensor fault or communication Error" %data.mode.mode
+                        self._errordiagnosticscreen.errorLog.setPlainText(error_msg)
+                    if(data.mode.mode==-1):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -1: Internal system error detected")
+                    if(data.mode.mode==-4):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -4: Robot Fault detected")
+                    if(data.mode.mode==-7):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -7: Robot singularity detected, controller cannot perform movement")
+                    if(data.mode.mode==-8):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -8: Robot Setpoint could not be tracked, robot location uncertain")
+                    if(data.mode.mode==-9):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -9: Commanded Trajectory is invalid and cannot be executed. Please replan")
+                    if(data.mode.mode==-10):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -10: Trajectory Tracking Error detected, robot position uncertain, consider lowering speed of operation to improve tracking")
+                    if(data.mode.mode==-11):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -11: Robot trajectory aborted.")
+                    if(data.mode.mode==-12):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -12: Robot Collision Imminent, operation stopped to prevent damage")
+                    if(data.mode.mode==-15):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -15: Sensor state is invalid")
+                    if(data.mode.mode==-16):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -16: Force Torque Threshold Violation detected, stopping motion to prevent potential collisions/damage")
+                    if(data.mode.mode==-17):
+                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -17: Invalid External Setpoint given")
                     #messagewindow=VacuumConfirm()
                     #reply = QMessageBox.question(messagewindow, 'Connection Lost',
                              #    'Robot Connection Lost, Return to Welcome Screen?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
