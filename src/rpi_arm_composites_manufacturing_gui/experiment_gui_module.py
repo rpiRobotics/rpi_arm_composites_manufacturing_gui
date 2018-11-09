@@ -277,7 +277,7 @@ class ExperimentGUI(Plugin):
 
         self.force_torque_plot_widget=QWidget()
         self.joint_angle_plot_widget=QWidget()
-        self._welcomescreen.openConfig.clicked.connect(lambda: self.led_change(self.robotconnectionled,False))
+        self._welcomescreen.openConfig.clicked.connect(self._open_config_options)
         #self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_login_prompt)
         self._welcomescreen.toRunScreen.pressed.connect(self._to_run_screen)
         self._runscreen.backToWelcome.pressed.connect(self._to_welcome_screen)
@@ -324,6 +324,23 @@ class ExperimentGUI(Plugin):
     def _to_error_screen(self):
         self.stackedWidget.setCurrentIndex(2)
 
+    def _login_prompt(self):
+        self.loginprompt=UserAuthenticationWindow()
+        while(not self.loginprompt.returned):
+            pass
+        if(self.loginprompt.success):
+            return True
+        else:
+            return False
+
+
+
+
+
+
+    def _open_config_options(self):
+        if(self._login_prompt()):
+            pass
 
     #def _open_overhead_camera_view(self):
 
