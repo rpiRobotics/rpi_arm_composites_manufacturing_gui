@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>802</width>
+    <width>928</width>
     <height>586</height>
    </rect>
   </property>
@@ -113,7 +113,7 @@ SCREEN</string>
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>../../../../.designer/images/undo.png</normaloff>../../../../.designer/images/undo.png</iconset>
+         <normaloff>../../../../../../.designer/images/undo.png</normaloff>../../../../../../.designer/images/undo.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -157,7 +157,7 @@ Mode</string>
          </property>
          <property name="icon">
           <iconset>
-           <normaloff>../images/login.png</normaloff>../images/login.png</iconset>
+           <normaloff>../../../../.designer/images/login.png</normaloff>../../../../.designer/images/login.png</iconset>
          </property>
          <property name="iconSize">
           <size>
@@ -278,7 +278,7 @@ Control</string>
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>../images/replay.png</normaloff>../images/replay.png</iconset>
+         <normaloff>../../../../.designer/images/replay.png</normaloff>../../../../.designer/images/replay.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -311,7 +311,7 @@ Control</string>
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>../images/house.png</normaloff>../images/house.png</iconset>
+         <normaloff>../../../../.designer/images/house.png</normaloff>../../../../.designer/images/house.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -347,7 +347,7 @@ Control</string>
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>../images/pause.png</normaloff>../images/pause.png</iconset>
+         <normaloff>../../../../.designer/images/pause.png</normaloff>../../../../.designer/images/pause.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -386,7 +386,7 @@ Control</string>
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>../images/play.png</normaloff>../images/play.png</iconset>
+         <normaloff>../../../../.designer/images/play.png</normaloff>../../../../.designer/images/play.png</iconset>
        </property>
        <property name="iconSize">
         <size>

@@ -8,7 +8,7 @@ import subprocess
 import numpy as np
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
-from python_qt_binding.QtWidgets import QWidget
+from python_qt_binding.QtWidgets import QWidget,QDialog
 from python_qt_binding.QtCore import QMutex, QMutexLocker,QSemaphore, QThread
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -28,6 +28,7 @@ import rosservice
 import rviz
 import safe_kinematic_controller.ros.commander as controller_commander_pkg
 from panel_selector_window import PanelSelectorWindow
+from user_authentication_window import UserAuthenticationWindow
 #TODO Integrate pyqtgraph into automatic package download
 import pyqtgraph as pg
 import threading
@@ -162,7 +163,7 @@ class ExperimentGUI(Plugin):
         self.setObjectName('MyPlugin')
         self._lock=threading.Lock()
         self._send_event=threading.Event()
-        self.controller_commander=controller_commander_pkg.ControllerCommander()
+        #self.controller_commander=controller_commander_pkg.ControllerCommander()
         # Process standalone plugin command-line arguments
         from argparse import ArgumentParser
         parser = ArgumentParser()
@@ -178,6 +179,10 @@ class ExperimentGUI(Plugin):
         # Create QWidget
         self.in_process=None
         self.recover_from_pause=False
+
+        #rospy.get_param("rosbag_name")
+        #<param name="start_time" command="date +'%d-%m-%Y_%Ih%Mm%S'"/>
+        #rosbag record args="record -O arg('start_time')
 
 
         self._mainwidget = QWidget()
@@ -204,8 +209,8 @@ class ExperimentGUI(Plugin):
         self.overheadcameraled.setDisabled(True)  # Make the led non clickable
         self.grippercameraled=LEDIndicator()
         self.grippercameraled.setDisabled(True)  # Make the led non clickable
-        self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
-        self.client.wait_for_server()
+        #self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
+        #self.client.wait_for_server()
         self.placement_target='panel_nest_leeward_mid_panel_target'
         self.panel_type='leeward_mid_panel'
 
@@ -271,9 +276,9 @@ class ExperimentGUI(Plugin):
         self._runscreen.panelType.setReadOnly(True)
         self._runscreen.placementNestTarget.setReadOnly(True)
 
-        rospy.Subscriber("controller_state", controllerstate, self.callback)
+        #rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
-        rospy.Subscriber("process_state", ProcessState, self.process_state_set)
+        #rospy.Subscriber("process_state", ProcessState, self.process_state_set)
 
         self.force_torque_plot_widget=QWidget()
         self.joint_angle_plot_widget=QWidget()
@@ -314,11 +319,15 @@ class ExperimentGUI(Plugin):
         self.stackedWidget.setCurrentIndex(0)
 
     def _to_run_screen(self):
-        self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
+        #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
         if(self.stackedWidget.currentIndex()==0):
             self.messagewindow=PanelSelectorWindow()
             self.messagewindow.show()
             self.messagewindow.setFixedSize(self.messagewindow.size())
+            if(self.messagewindow.exec()):
+                next_selected_panel=self.messagewindow.get_panel_selected()
+                if(next_panel_selected != None):
+                    self.panel_type=next_selected_panel
         self.stackedWidget.setCurrentIndex(1)
 
     def _to_error_screen(self):
@@ -326,9 +335,11 @@ class ExperimentGUI(Plugin):
 
     def _login_prompt(self):
         self.loginprompt=UserAuthenticationWindow()
-        while(not self.loginprompt.returned):
-            pass
-        if(self.loginprompt.success):
+        if self.loginprompt.exec_()==QDialog.Accepted:
+        #self.loginprompt.show()
+        #while(not self.loginprompt.returned):
+            #pass
+
             return True
         else:
             return False
@@ -340,7 +351,8 @@ class ExperimentGUI(Plugin):
 
     def _open_config_options(self):
         if(self._login_prompt()):
-            pass
+            self.led_change(self.robotconnectionled,True)
+
 
     #def _open_overhead_camera_view(self):
 
@@ -561,7 +573,7 @@ class ExperimentGUI(Plugin):
     def _stopPlan(self):
         #client=self.client
         #
-        self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT, 0,[], [])
+        #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT, 0,[], [])
         client=self.client
         client.cancel_all_goals()
         self.recover_from_pause=True
@@ -601,7 +613,7 @@ class ExperimentGUI(Plugin):
             self._execute_step('plan_pickup_raise')
         elif(self.planListIndex==5):
             self._execute_step('plan_transport_payload',self.placement_target)
-        self.set_controller_mode(self.controller_commander.MODE_SHARED_TRAJECTORY, 1, [],[])
+        #self.set_controller_mode(self.controller_commander.MODE_SHARED_TRAJECTORY, 1, [],[])
 
     def set_controller_mode(self,mode,speed_scalar=1.0,ft_bias=[], ft_threshold=[]):
         req=SetControllerModeRequest()

@@ -6,14 +6,14 @@ import rospy
 
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
-from python_qt_binding.QtWidgets import QWidget
+from python_qt_binding.QtWidgets import QDialog
 from python_qt_binding.QtCore import QMutex, QMutexLocker,QSemaphore, QThread
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 
-class PanelSelectorWindow(QWidget):
+class PanelSelectorWindow(QDialog):
     def __init__(self):
         super(PanelSelectorWindow,self).__init__()
         self.placement_chosen=None
@@ -32,6 +32,8 @@ class PanelSelectorWindow(QWidget):
         self.placement_nest_2=QGraphicsRectItem(100,-40,100,100)
         self.pickup_nest_1=QGraphicsRectItem(-70,150,100,100)
 
+        self.continue_button.pressed.connect(self.pass_values)
+
         self.graphics_scene.addItem(self.robot_representation)
         self.graphics_scene.addItem(self.placement_nest_1)
         self.graphics_scene.addItem(self.placement_nest_2)
@@ -39,9 +41,17 @@ class PanelSelectorWindow(QWidget):
         self.workspaceView.setScene(self.graphics_scene)
 
 
-    def placement_nest_1_selected(self):
-        self.placement_chosen='panel_nest_leeward_mid_panel_target'
+#    def placement_nest_1_selected(self):
+#        self.placement_chosen='panel_nest_leeward_mid_panel_target'
 
+    def get_panel_selected(self):
+        return self.panel
+
+    def get_pickup_selected(self):
+        return self.pickup_chosen
+
+    def get_placement_selected(self):
+        return self.placement_chosen
 
     def panel_selected(self,panel_index):
         if(panel_index!=0):
@@ -79,4 +89,7 @@ class PanelSelectorWindow(QWidget):
             else:
                 self.pickup_chosen='panel_pickup_1'
                 self.pickupLocation.setText("Panel Pick Up Nest")
+
+    def pass_values(self):
+        self.accept()
 
