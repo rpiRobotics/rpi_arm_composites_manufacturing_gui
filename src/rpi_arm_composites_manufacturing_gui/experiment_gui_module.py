@@ -163,7 +163,7 @@ class ExperimentGUI(Plugin):
         self.setObjectName('MyPlugin')
         self._lock=threading.Lock()
         self._send_event=threading.Event()
-        #self.controller_commander=controller_commander_pkg.ControllerCommander()
+        self.controller_commander=controller_commander_pkg.ControllerCommander()
         # Process standalone plugin command-line arguments
         from argparse import ArgumentParser
         parser = ArgumentParser()
@@ -209,8 +209,8 @@ class ExperimentGUI(Plugin):
         self.overheadcameraled.setDisabled(True)  # Make the led non clickable
         self.grippercameraled=LEDIndicator()
         self.grippercameraled.setDisabled(True)  # Make the led non clickable
-        #self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
-        #self.client.wait_for_server()
+        self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
+        self.client.wait_for_server()
         self.placement_target='panel_nest_leeward_mid_panel_target'
         self.panel_type='leeward_mid_panel'
 
@@ -276,7 +276,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.panelType.setReadOnly(True)
         self._runscreen.placementNestTarget.setReadOnly(True)
 
-        #rospy.Subscriber("controller_state", controllerstate, self.callback)
+        rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
         #rospy.Subscriber("process_state", ProcessState, self.process_state_set)
 
@@ -319,7 +319,7 @@ class ExperimentGUI(Plugin):
         self.stackedWidget.setCurrentIndex(0)
 
     def _to_run_screen(self):
-        #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
+        self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
         if(self.stackedWidget.currentIndex()==0):
             self.messagewindow=PanelSelectorWindow()
             self.messagewindow.show()
