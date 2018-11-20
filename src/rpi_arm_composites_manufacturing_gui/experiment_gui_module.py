@@ -8,14 +8,14 @@ import subprocess
 import numpy as np
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
-from python_qt_binding.QtWidgets import QWidget,QDialog
+from python_qt_binding.QtWidgets import QWidget, QDialog
 from python_qt_binding.QtCore import QMutex, QMutexLocker,QSemaphore, QThread
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 
-from arm_composites_manufacturing_process import ProcessController
+
 
 from safe_kinematic_controller.msg import ControllerState as controllerstate
 from safe_kinematic_controller.srv import SetControllerMode, SetControllerModeRequest
@@ -104,7 +104,8 @@ class LEDIndicator(QAbstractButton):
 
     @onColor2.setter
     def onColor2(self, color):
-        self.on_color_2 = color
+        self.on_ciagnosticscreen.backToRun.pressed.connect(self._to_run_screen)
+        #self._runscolor_2 = color
 
     @pyqtProperty(QColor)
     def offColor1(self):
@@ -246,7 +247,8 @@ class ExperimentGUI(Plugin):
         self.plugin_settings=None
         self.instance_settings=None
         #self._errordiagnosticscreen.consoleWidget=console_widget.ConsoleWidget(self._proxy_model,self._rospack)
-        #####consoleThread=ConsoleThread(self._widget.State_info)
+        #####consoleiagnosticscreen.backToRun.pressed.connect(self._to_run_screen)
+        #self._runscThread=ConsoleThread(self._widget.State_info)
        # self._welcomescreen.statusFormLayout.takeAt(0)
         self._welcomescreen.statusFormLayout.addWidget(self.robotconnectionled,0,0)
         self._welcomescreen.statusFormLayout.addWidget(self.forcetorqueled,2,0)
@@ -260,7 +262,7 @@ class ExperimentGUI(Plugin):
         self.reset_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Reset_Start_pos_wason2.py')
         self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_YC.py')
         # Add widget to the user interface
-        #context.add_widget(console)
+        #context.add_widget(console)==QDialog.Accepted
             #context.add_widget(rqt_console)
 
         for entry in self.plans:
@@ -270,7 +272,7 @@ class ExperimentGUI(Plugin):
 
         self._runscreen.planList.item(0).setSelected(True)
         self.planListIndex=0
-        self._runscreen.panelType.setText("Leeward Mid Panel")
+        self._runscreen.panelType.setText(self.panel_type)
         self._runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
 
         self._runscreen.panelType.setReadOnly(True)
@@ -279,7 +281,6 @@ class ExperimentGUI(Plugin):
         rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
         #rospy.Subscriber("process_state", ProcessState, self.process_state_set)
-
         self.force_torque_plot_widget=QWidget()
         self.joint_angle_plot_widget=QWidget()
         self._welcomescreen.openConfig.clicked.connect(self._open_config_options)
@@ -324,19 +325,21 @@ class ExperimentGUI(Plugin):
             self.messagewindow=PanelSelectorWindow()
             self.messagewindow.show()
             self.messagewindow.setFixedSize(self.messagewindow.size())
-            if(self.messagewindow.exec()):
+            if self.messagewindow.exec_():
                 next_selected_panel=self.messagewindow.get_panel_selected()
-                if(next_panel_selected != None):
+                if(next_selected_panel != None):
                     self.panel_type=next_selected_panel
+
         self.stackedWidget.setCurrentIndex(1)
+        self._runscreen.panelType.setText(self.panel_type)
 
     def _to_error_screen(self):
         self.stackedWidget.setCurrentIndex(2)
 
     def _login_prompt(self):
         self.loginprompt=UserAuthenticationWindow()
-        if self.loginprompt.exec_()==QDialog.Accepted:
-        #self.loginprompt.show()
+        if self.loginprompt.exec_():
+            #self.loginprompt.show()
         #while(not self.loginprompt.returned):
             #pass
 
@@ -684,8 +687,10 @@ class ExperimentGUI(Plugin):
             '''
             if(self.count>10):
                 self.count=0
+
                 if(data.mode.mode<0):
-                    self.stackedWidget.setCurrentIndex(2)
+                    '''
+                    #self.stackedWidget.setCurrentIndex(2)
                     if(data.mode.mode==-5 or data.mode.mode==-6):
                         error_msg="Error mode %d : Controller is not synched or is in Invalid State" %data.mode.mode
                         self._errordiagnosticscreen.errorLog.setPlainText(error_msg)
@@ -718,6 +723,7 @@ class ExperimentGUI(Plugin):
                         self._errordiagnosticscreen.errorLog.setPlainText("Error mode -16: Force Torque Threshold Violation detected, stopping motion to prevent potential collisions/damage")
                     if(data.mode.mode==-17):
                         self._errordiagnosticscreen.errorLog.setPlainText("Error mode -17: Invalid External Setpoint given")
+                    '''
                     #messagewindow=VacuumConfirm()
                     #reply = QMessageBox.question(messagewindow, 'Connection Lost',
                              #    'Robot Connection Lost, Return to Welcome Screen?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
