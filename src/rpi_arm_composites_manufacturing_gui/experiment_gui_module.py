@@ -277,10 +277,10 @@ class ExperimentGUI(Plugin):
 
         self._runscreen.panelType.setReadOnly(True)
         self._runscreen.placementNestTarget.setReadOnly(True)
-
+        self.commands_sent=False
         rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
-        #rospy.Subscriber("process_state", ProcessState, self.process_state_set)
+        rospy.Subscriber("process_state", ProcessState, self.process_state_set)
         self.force_torque_plot_widget=QWidget()
         self.joint_angle_plot_widget=QWidget()
         self._welcomescreen.openConfig.clicked.connect(self._open_config_options)
@@ -300,7 +300,7 @@ class ExperimentGUI(Plugin):
         #self._runscreen.widget.frame=rviz.VisualizationFrame()
         #self._runscreen.widget.frame.setSplashPath( "" )
         self.last_step=0
-        self.commands_sent=False
+
 
         ## VisualizationFrame.initialize() must be called before
         ## VisualizationFrame.load().  In fact it must be called
@@ -429,7 +429,6 @@ class ExperimentGUI(Plugin):
 
     def _execute_steps(self,steps_index,resume_index=0, target="",target_index=-1):
         #TODO Create separate thread for each execution step that waits until in_process is true
-        rospy.loginfo("Entered _execute_steps")
 
         for step_num in range(resume_index,len(self.execute_states[steps_index])):
 
@@ -628,8 +627,10 @@ class ExperimentGUI(Plugin):
         if (res.error_code.mode != ControllerMode.MODE_SUCCESS): raise Exception("Could not set controller mode")
 
     def process_state_set(self,data):
+        #if(data.state!="moving"):
         self.planListIndexname=data.state
         self._send_event.set()
+
         if(self.commands_sent):
             self._runscreen.nextPlan.setDisabled(False)
             self._runscreen.previousPlan.setDisabled(False)
