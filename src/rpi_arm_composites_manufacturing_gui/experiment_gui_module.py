@@ -447,7 +447,9 @@ class ExperimentGUI(Plugin):
                 else:
                     self.last_step=step_num-1
                 self._send_event.clear()
+                self.recover_from_pause=False
                 break
+
             client.send_goal(g)
 
             #self.in_process=True
@@ -471,7 +473,7 @@ class ExperimentGUI(Plugin):
         if(self.planListIndex+1==self._runscreen.planList.count()):
             self.planListIndex=0
         elif self.recover_from_pause:
-            self.recover_from_pause=False
+            pass
         else:
             self.planListIndex+=1
         #self._open_rviz_prompt()

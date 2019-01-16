@@ -98,7 +98,7 @@
        </property>
        <property name="font">
         <font>
-         <pointsize>18</pointsize>
+         <pointsize>20</pointsize>
         </font>
        </property>
        <property name="layoutDirection">
@@ -129,7 +129,7 @@ SCREEN</string>
         <widget class="QPushButton" name="toErrorScreen">
          <property name="font">
           <font>
-           <pointsize>18</pointsize>
+           <pointsize>20</pointsize>
           </font>
          </property>
          <property name="text">
@@ -148,7 +148,7 @@ SCREEN</string>
          </property>
          <property name="font">
           <font>
-           <pointsize>18</pointsize>
+           <pointsize>20</pointsize>
           </font>
          </property>
          <property name="text">
@@ -177,7 +177,7 @@ Mode</string>
          </property>
          <property name="font">
           <font>
-           <pointsize>18</pointsize>
+           <pointsize>20</pointsize>
           </font>
          </property>
          <property name="text">
@@ -256,7 +256,7 @@ Control</string>
        </property>
        <property name="font">
         <font>
-         <pointsize>18</pointsize>
+         <pointsize>20</pointsize>
         </font>
        </property>
       </widget>
@@ -402,23 +402,45 @@ Control</string>
     <layout class="QGridLayout" name="gridLayout_3">
      <item row="0" column="1">
       <widget class="QLabel" name="label_10">
+       <property name="font">
+        <font>
+         <pointsize>15</pointsize>
+        </font>
+       </property>
        <property name="text">
         <string>Current Panel Type:</string>
        </property>
       </widget>
      </item>
      <item row="0" column="2">
-      <widget class="QLineEdit" name="panelType"/>
+      <widget class="QLineEdit" name="panelType">
+       <property name="font">
+        <font>
+         <pointsize>15</pointsize>
+        </font>
+       </property>
+      </widget>
      </item>
      <item row="0" column="3">
       <widget class="QLabel" name="label_11">
+       <property name="font">
+        <font>
+         <pointsize>15</pointsize>
+        </font>
+       </property>
        <property name="text">
         <string>Current Placement Nest Target:</string>
        </property>
       </widget>
      </item>
      <item row="0" column="4">
-      <widget class="QLineEdit" name="placementNestTarget"/>
+      <widget class="QLineEdit" name="placementNestTarget">
+       <property name="font">
+        <font>
+         <pointsize>15</pointsize>
+        </font>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
