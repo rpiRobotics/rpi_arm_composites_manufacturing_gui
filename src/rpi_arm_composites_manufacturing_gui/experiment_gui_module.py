@@ -159,7 +159,7 @@ class ExperimentGUI(Plugin):
         self.state_dict={'reset_position':0,'pickup_prepare':1,'pickup_lower':2,'pickup_grab_first_step':2,'pickup_grab_second_step':2,'pickup_raise':2,'transport_panel':3,'place_lower':4,'place_set_first_step':4,'place_set_second_step':4,'place_raise':4}
 
         self.execute_states=[['plan_to_reset_position','move_to_reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
-                            ['plan_transport_payload','move_transport_payload']]
+                            ['plan_transport_payload','move_transport_payload'],['plan_place_set_second_step']]
 
         self.setObjectName('MyPlugin')
         self._lock=threading.Lock()
@@ -260,7 +260,9 @@ class ExperimentGUI(Plugin):
         #####consoleThread.start()
         self.rviz_starter=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'rviz_starter.py')
         self.reset_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Reset_Start_pos_wason2.py')
-        self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_YC.py')
+        self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01072019_Panel1.py')
+        self.YC_place_code2=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01072019_Panel2.py')
+        self.YC_transport_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'test_moveit_commander_custom_trajectory_YC_TransportPath_Panels.py')
         # Add widget to the user interface
         #context.add_widget(console)==QDialog.Accepted
             #context.add_widget(rqt_console)
@@ -277,7 +279,7 @@ class ExperimentGUI(Plugin):
 
         self._runscreen.panelType.setReadOnly(True)
         self._runscreen.placementNestTarget.setReadOnly(True)
-
+        self.commands_sent=False
         rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
         rospy.Subscriber("process_state", ProcessState, self.process_state_set)
@@ -300,7 +302,7 @@ class ExperimentGUI(Plugin):
         #self._runscreen.widget.frame=rviz.VisualizationFrame()
         #self._runscreen.widget.frame.setSplashPath( "" )
         self.last_step=0
-        self.commands_sent=False
+
 
         ## VisualizationFrame.initialize() must be called before
         ## VisualizationFrame.load().  In fact it must be called
@@ -429,7 +431,6 @@ class ExperimentGUI(Plugin):
 
     def _execute_steps(self,steps_index,resume_index=0, target="",target_index=-1):
         #TODO Create separate thread for each execution step that waits until in_process is true
-        rospy.loginfo("Entered _execute_steps")
 
         for step_num in range(resume_index,len(self.execute_states[steps_index])):
 
@@ -534,10 +535,17 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[0,0,0]")
             """
         elif(self.planListIndex==3):
-            self.send_thread=threading.Thread(target=self._execute_steps,args=(3,self.last_step,self.placement_target,0))
-            self.send_thread.setDaemon(True)
-            self.send_thread.start()
-            self._send_event.set()
+            if(self.panel_type=="leeward_mid_panel"):
+                subprocess.Popen(['python', self.YC_transport_code, 'leeward_mid_panel'])
+            elif(self.panel_type=="leeward_tip_panel"):
+                subprocess.Popen(['python', self.YC_transport_code, 'leeward_tip_panel'])
+            self._runscreen.nextPlan.setDisabled(False)
+            self._runscreen.previousPlan.setDisabled(False)
+            self._runscreen.resetToHome.setDisabled(False)
+            #self.send_thread=threading.Thread(target=self._execute_steps,args=(3,self.last_step,self.placement_target,0))
+            #self.send_thread.setDaemon(True)
+            #self.send_thread.start()
+            #self._send_event.set()
             """
             self._execute_step('plan_transport_payload',self.placement_target)
             self._execute_step('move_transport_payload')
@@ -552,7 +560,11 @@ class ExperimentGUI(Plugin):
             self._runscreen.pressureSensor.setText("[1,1,1]")
             """
         elif(self.planListIndex==4):
-            subprocess.Popen(['python', self.YC_place_code])
+            if(self.panel_type=="leeward_mid_panel"):
+                subprocess.Popen(['python', self.YC_place_code])
+            elif(self.panel_type=="leeward_tip_panel"):
+                subprocess.Popen(['python', self.YC_place_code2])
+
             """
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
@@ -628,8 +640,10 @@ class ExperimentGUI(Plugin):
         if (res.error_code.mode != ControllerMode.MODE_SUCCESS): raise Exception("Could not set controller mode")
 
     def process_state_set(self,data):
+        #if(data.state!="moving"):
         self.planListIndexname=data.state
         self._send_event.set()
+
         if(self.commands_sent):
             self._runscreen.nextPlan.setDisabled(False)
             self._runscreen.previousPlan.setDisabled(False)
