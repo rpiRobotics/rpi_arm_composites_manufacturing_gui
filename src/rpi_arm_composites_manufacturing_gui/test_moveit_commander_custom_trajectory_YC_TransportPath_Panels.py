@@ -55,7 +55,7 @@ def main():
     p2.positions = np.array(waypoints[0,:])
     p2.velocities = np.zeros((6,))
     p2.accelerations = np.zeros((6,))
-    t2 = 1
+    t2 = 0.5
     p2.time_from_start = rospy.Duration(t2)
     
 
