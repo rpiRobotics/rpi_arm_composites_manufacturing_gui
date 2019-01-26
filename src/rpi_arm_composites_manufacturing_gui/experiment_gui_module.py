@@ -214,10 +214,11 @@ class ExperimentGUI(Plugin):
         self.client.wait_for_server()
         self.placement_target='panel_nest_leeward_mid_panel_target'
         self.panel_type='leeward_mid_panel'
-
+        
         self.led_change(self.overheadcameraled,True)
         self.led_change(self.grippercameraled,True)
         self.mode=0
+        self.rewound=False
         self.count=0
         self.data_count=0
         self.force_torque_data=np.zeros((6,1))
@@ -479,6 +480,7 @@ class ExperimentGUI(Plugin):
         #self._open_rviz_prompt()
         #self._raise_rviz_window()
 
+
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
         time.sleep(1)
 
@@ -577,7 +579,9 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("OFF")
             self._runscreen.pressureSensor.setText("[1,1,1]")
             """
-
+        if(self.rewound):
+            self.rewound=False
+            self._runscreen.previousPlan.setDisabled(False)
 
 
     def _previousPlan(self):
@@ -586,6 +590,9 @@ class ExperimentGUI(Plugin):
         else:
             self.planListIndex-=1
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
+        self._runscreen.previousPlan.setDisabled(True)
+        self.rewound=True
+        
 
     def _stopPlan(self):
         #client=self.client

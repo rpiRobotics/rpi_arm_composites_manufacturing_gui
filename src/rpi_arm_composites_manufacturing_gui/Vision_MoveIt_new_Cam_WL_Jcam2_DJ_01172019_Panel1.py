@@ -6,7 +6,7 @@ from sensor_msgs.msg import CompressedImage, CameraInfo, Image
 import general_robotics_toolbox as rox
 import general_robotics_toolbox.urdf as urdf
 import general_robotics_toolbox.ros_msg as rox_msg
-from pyspin_wrapper.srv import CameraTrigger
+from std_srvs.srv import Trigger
 
 from cv_bridge import CvBridge, CvBridgeError
 from industrial_payload_manager import PayloadTransformListener
@@ -249,7 +249,7 @@ def main():
   
     #subscribe to Gripper camera node for image acquisition     
     ros_gripper_2_img_sub=rospy.Subscriber('/gripper_camera_2/image', Image, object_commander.ros_raw_gripper_2_image_cb)
-    ros_gripper_2_trigger=rospy.ServiceProxy('/gripper_camera_2/continuous_trigger', CameraTrigger)
+    ros_gripper_2_trigger=rospy.ServiceProxy('/gripper_camera_2/trigger', Trigger)
 
     #Set controller command mode
     controller_commander.set_controller_mode(controller_commander.MODE_AUTO_TRAJECTORY, 0.4, [],[])
@@ -346,7 +346,7 @@ def main():
     last_ros_image_stamp = object_commander.ros_image_stamp        
     try:
         ros_gripper_2_trigger.wait_for_service(timeout=0.1)
-        ros_gripper_2_trigger(False)
+        ros_gripper_2_trigger()
     except:
         pass
     wait_count=0
@@ -496,7 +496,7 @@ def main():
         last_ros_image_stamp = object_commander.ros_image_stamp        
         try:
             ros_gripper_2_trigger.wait_for_service(timeout=0.1)
-            ros_gripper_2_trigger(False)
+            ros_gripper_2_trigger()
         except:
             pass
         wait_count=0
@@ -735,7 +735,7 @@ def main():
     last_ros_image_stamp = object_commander.ros_image_stamp        
     try:
         ros_gripper_2_trigger.wait_for_service(timeout=0.1)
-        ros_gripper_2_trigger(False)
+        ros_gripper_2_trigger()
     except:
         pass
     wait_count=0
@@ -830,7 +830,7 @@ def main():
     last_ros_image_stamp = object_commander.ros_image_stamp        
     try:
         ros_gripper_2_trigger.wait_for_service(timeout=0.1)
-        ros_gripper_2_trigger(False)
+        ros_gripper_2_trigger()
     except:
         pass
     wait_count=0
