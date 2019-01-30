@@ -15,13 +15,16 @@ class ErrorConfirm(QWidget):
     def __init__(self):
         super(ErrorConfirm,self).__init__()
 
+
+
 class GUI_Step_Executor():
-    def __init__(self,execute_states):
+    def __init__(self):
         self.in_process=None
         self.recover_from_pause=False
         self.rewound=False
-        self.execute_states=execute_states
 
+        self.execute_states=[['plan_to_reset_position','move_to_reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
+                            ['plan_transport_payload','move_transport_payload'],['plan_place_set_second_step']]
         self.reset_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Reset_Start_pos_wason2.py')
         self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel1.py')
         self.YC_place_code2=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel2.py')
@@ -154,7 +157,7 @@ class GUI_Step_Executor():
             self._runscreen.previousPlan.setDisabled(False)
 
 
-    def _previousPlan(self,planListIndex):
+    def _previousPlan(self):
 
         self.rewound=True
 

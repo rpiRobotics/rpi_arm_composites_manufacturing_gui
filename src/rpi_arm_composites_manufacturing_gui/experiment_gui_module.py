@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from execute_gui_steps import GUI_Step_Executor
+from rpi_arm_composites_manufacturing_gui.msg import GUIStepAction, GUIStepGoal
 
 
 
@@ -158,7 +159,7 @@ class ExperimentGUI(Plugin):
         self.plans=['Starting Position','Above Panel', 'Panel Grabbed','Above Placement Nest','Panel Placed']
         #state_dict ties each state to planlistindex values
         #self.state_dict={'reset_position':0,'pickup_prepare':1,'pickup_lower':2,'pickup_grab_first_step':2,'pickup_grab_second_step':2,'pickup_raise':2,'transport_panel':3,'place_lower':4,'place_set_first_step':4,'place_set_second_step':4,'place_raise':4}
-
+        self.gui_execute_states=["reset","panel_pickup","pickup_grab","transport_panel","place_panel"]
         self.execute_states=[['plan_to_reset_position','move_to_reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
                             ['plan_transport_payload','move_transport_payload'],['plan_place_set_second_step']]
 
@@ -211,11 +212,12 @@ class ExperimentGUI(Plugin):
         self.overheadcameraled.setDisabled(True)  # Make the led non clickable
         self.grippercameraled=LEDIndicator()
         self.grippercameraled.setDisabled(True)  # Make the led non clickable
-        self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
+
+        self.client=actionlib.SimpleActionClient('gui_step', ProcessStepAction)
         self.client.wait_for_server()
         self.placement_target='panel_nest_leeward_mid_panel_target'
         self.panel_type='leeward_mid_panel'
-        
+        self.client_handle=None
         self.led_change(self.overheadcameraled,True)
         self.led_change(self.grippercameraled,True)
         self.mode=0
@@ -435,16 +437,19 @@ class ExperimentGUI(Plugin):
             self.planListIndex=0
         else:
             self.planListIndex+=1
-        self.step_executor._nextPlan(self.panel_type,self.planListIndex)
+        g=GUIStepGoal(gui_execute_steps[self.planListIndex], self.panel_type)
+        self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+
+        #self.step_executor._nextPlan(self.panel_type,self.planListIndex)
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
 
-        self._runscreen.nextPlan.setDisabled(False)
-        self._runscreen.previousPlan.setDisabled(False)
-        self._runscreen.resetToHome.setDisabled(False)
+
 
     def _stopPlan():
-        self.step_executor._stopPlan()
+        g=GUIStepGoal("stop_plan", self.panel_type)
+        self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+        #self.step_executor._stopPlan()
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
@@ -457,9 +462,22 @@ class ExperimentGUI(Plugin):
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
         self._runscreen.previousPlan.setDisabled(True)
-        self.step_executor._previousPlan(self.planListIndex)
+        g=GUIStepGoal("previous_plan", self.panel_type)
+        self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._process_done)
+        #self.step_executor._previousPlan(self.planListIndex)
 
-        
+    def _feedback_receive(self,state,result):
+        messagewindow=VacuumConfirm()
+        QMessageBox.information(messagewindow, 'Error', 'Operation failed',str(result))
+        self._runscreen.nextPlan.setDisabled(False)
+        self._runscreen.previousPlan.setDisabled(False)
+        self._runscreen.resetToHome.setDisabled(False)
+
+    def _process_done(self,state,result):
+        self._runscreen.nextPlan.setDisabled(False)
+        self._runscreen.previousPlan.setDisabled(False)
+        self._runscreen.resetToHome.setDisabled(False)
+
     def process_state_set(self,data):
         #if(data.state!="moving"):
 
@@ -476,7 +494,9 @@ class ExperimentGUI(Plugin):
         if reply==QMessageBox.Yes:
 
             self.planListIndex=0
-            self.step_executor._nextPlan(None,self.planListIndex)
+            self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive)
+            g=GUIStepGoal("reset", self.panel_type)
+            #self.step_executor._nextPlan(None,self.planListIndex)
             self._runscreen.planList.item(self.planListIndex).setSelected(True)
             #subprocess.Popen(['python', self.reset_code])
         else:
