@@ -13,7 +13,7 @@ def main():
     controller_commander=controller_commander_pkg.ControllerCommander()
     transport1=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Joint_all_Panel1.txt')
     transport2=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Joint_all_Panel2.txt')
-    controller_commander.set_controller_mode(controller_commander.MODE_AUTO_TRAJECTORY, 1.0, [], [])
+    controller_commander.set_controller_mode(controller_commander.MODE_AUTO_TRAJECTORY, 0.1, [], [])
     if('leeward_mid_panel' in sys.argv):
         waypoints = np.loadtxt(transport1, comments="#", delimiter=",", unpack=False)
 

@@ -252,7 +252,7 @@ def main():
   
     #subscribe to Gripper camera node for image acquisition     
     ros_gripper_2_img_sub=rospy.Subscriber('/gripper_camera_2/image', Image, object_commander.ros_raw_gripper_2_image_cb)
-    ros_gripper_2_trigger=rospy.ServiceProxy('/gripper_camera_2/trigger', Trigger)
+    ros_gripper_2_trigger=rospy.ServiceProxy('/gripper_camera_2/camera_trigger', Trigger)
 
     #Set controller command mode
     controller_commander.set_controller_mode(controller_commander.MODE_AUTO_TRAJECTORY, 0.4, [],[])

@@ -186,7 +186,7 @@ class ExperimentGUI(Plugin):
         #<param name="start_time" command="date +'%d-%m-%Y_%Ih%Mm%S'"/>
         #rosbag record args="record -O arg('start_time')
 
-        self.step_executor=GUI_Step_Executor()
+        self.step_executor=GUI_Step_Executor(self.execute_states)
         self._mainwidget = QWidget()
         self.layout = QGridLayout()
         self._mainwidget.setLayout(self.layout)
@@ -279,7 +279,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.panelType.setReadOnly(True)
         self._runscreen.placementNestTarget.setReadOnly(True)
         self.commands_sent=False
-        rospy.Subscriber("controller_state", controllerstate, self.callback)
+        #rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
         rospy.Subscriber("process_state", ProcessState, self.process_state_set)
         self.force_torque_plot_widget=QWidget()
@@ -289,7 +289,7 @@ class ExperimentGUI(Plugin):
         self._welcomescreen.toRunScreen.pressed.connect(self._to_run_screen)
         self._runscreen.backToWelcome.pressed.connect(self._to_welcome_screen)
         self._runscreen.toErrorScreen.pressed.connect(self._to_error_screen)
-        self._runscreen.nextPlan.pressed.connect(self._nextPlan)
+        self._runscreen.nextPlan.pressed.connect(self._next_plan)
         self._runscreen.previousPlan.pressed.connect(self._previousPlan)
         self._runscreen.resetToHome.pressed.connect(self._reset_position)
         self._runscreen.stopPlan.pressed.connect(self._stopPlan)
@@ -457,7 +457,7 @@ class ExperimentGUI(Plugin):
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
         self._runscreen.previousPlan.setDisabled(True)
-        self.step_executor._previousPlan()
+        self.step_executor._previousPlan(self.planListIndex)
 
         
     def process_state_set(self,data):
@@ -476,7 +476,7 @@ class ExperimentGUI(Plugin):
         if reply==QMessageBox.Yes:
 
             self.planListIndex=0
-            self.step_executor._nextPlan(panel_type=None,planListIndex)
+            self.step_executor._nextPlan(None,self.planListIndex)
             self._runscreen.planList.item(self.planListIndex).setSelected(True)
             #subprocess.Popen(['python', self.reset_code])
         else:
