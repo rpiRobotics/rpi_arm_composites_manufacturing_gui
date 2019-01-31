@@ -419,7 +419,7 @@ def main():
     # Adjustment
     print "Adjustment ===================="
     current_joint_angles = controller_commander.get_current_joint_values()
-    dx = np.array([0,0,0, -tvec_err[0], tvec_err[1]+0.03,tvec_err[2]])
+    dx = np.array([0,0,0, -tvec_err[0], tvec_err[1]+0.03,tvec_err[2]])*0.75
     joints_vel = QP_abbirb6640(np.array(current_joint_angles).reshape(6, 1),np.array(dx))
     goal = trapezoid_gen(np.array(current_joint_angles) + joints_vel.dot(1),np.array(current_joint_angles),0.25,np.array(dx))
     client = actionlib.SimpleActionClient("joint_trajectory_action", FollowJointTrajectoryAction)

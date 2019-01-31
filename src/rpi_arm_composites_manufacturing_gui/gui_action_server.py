@@ -1,5 +1,7 @@
 from execute_gui_steps import GUI_Step_Executor
 from rpi_arm_composites_manufacturing_gui.msg import GUIStepAction, GUIStepGoal
+import rospy
+import actionlib
 class GUIExecutionServer(object):
     def __init__(self):
         self.executor=GUI_Step_Executor()
@@ -34,11 +36,10 @@ class GUIExecutionServer(object):
 
         self.server.set_succeeded(res)
 
-def process_controller_server_main():
-    rospy.init_node("process_controller_server")
+def gui_action_server_main():
+    rospy.init_node("gui_action_server")
 
-    disable_ft=rospy.get_param('~disable_ft', False)
-
-    s=ProcessControllerServer(disable_ft=disable_ft)
+    s=GUIExecutionServer()
+    
 
     rospy.spin()

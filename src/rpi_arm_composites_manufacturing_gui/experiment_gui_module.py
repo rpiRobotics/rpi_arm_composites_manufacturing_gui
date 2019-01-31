@@ -187,7 +187,7 @@ class ExperimentGUI(Plugin):
         #<param name="start_time" command="date +'%d-%m-%Y_%Ih%Mm%S'"/>
         #rosbag record args="record -O arg('start_time')
 
-        self.step_executor=GUI_Step_Executor(self.execute_states)
+        self.step_executor=GUI_Step_Executor()
         self._mainwidget = QWidget()
         self.layout = QGridLayout()
         self._mainwidget.setLayout(self.layout)
