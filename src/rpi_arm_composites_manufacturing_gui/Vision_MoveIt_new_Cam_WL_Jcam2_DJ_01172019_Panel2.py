@@ -241,6 +241,7 @@ def main():
     rospy.init_node('Placement_DJ_1', anonymous=True)
     process_client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
     process_client.wait_for_server()
+    process_state_pub = rospy.Publisher("process_state", ProcessState, queue_size=100, latch=True)
     #print "============ Starting setup"   
     
     listener = PayloadTransformListener()
@@ -252,7 +253,7 @@ def main():
   
     #subscribe to Gripper camera node for image acquisition     
     ros_gripper_2_img_sub=rospy.Subscriber('/gripper_camera_2/image', Image, object_commander.ros_raw_gripper_2_image_cb)
-    ros_gripper_2_trigger=rospy.ServiceProxy('/gripper_camera_2/trigger', Trigger)
+    ros_gripper_2_trigger=rospy.ServiceProxy('/gripper_camera_2/camera_trigger', Trigger)
 
     #Set controller command mode
     controller_commander.set_controller_mode(controller_commander.MODE_AUTO_TRAJECTORY, 0.4, [],[])
@@ -432,7 +433,7 @@ def main():
     # Adjustment
     print "Adjustment ===================="
     current_joint_angles = controller_commander.get_current_joint_values()
-    dx = np.array([0,0,0, -tvec_err[0], tvec_err[1],tvec_err[2]+0.05])
+    dx = np.array([0,0,0, -tvec_err[0], tvec_err[1],tvec_err[2]])*0.75
     joints_vel = QP_abbirb6640(np.array(current_joint_angles).reshape(6, 1),np.array(dx))
     goal = trapezoid_gen(np.array(current_joint_angles) + joints_vel.dot(1),np.array(current_joint_angles),0.25,np.array(dx))
     client = actionlib.SimpleActionClient("joint_trajectory_action", FollowJointTrajectoryAction)
@@ -1128,6 +1129,11 @@ def main():
     t2 = time.time()
     print 'Execution Finished.'
     print "Execution time: " + str(t2-t1) + " seconds"
+    s=ProcessState()
+    s.state="place_set"
+    s.payload="leeward_tip_panel"
+    s.target=""
+    process_state_pub.publish(s)
 
 if __name__ == '__main__':
     main()

@@ -543,9 +543,8 @@ class ExperimentGUI(Plugin):
                 subprocess.Popen(['python', self.YC_transport_code, 'leeward_mid_panel'])
             elif(self.panel_type=="leeward_tip_panel"):
                 subprocess.Popen(['python', self.YC_transport_code, 'leeward_tip_panel'])
-            self._runscreen.nextPlan.setDisabled(False)
-            self._runscreen.previousPlan.setDisabled(False)
-            self._runscreen.resetToHome.setDisabled(False)
+            self.commands_sent=True
+            
             #self.send_thread=threading.Thread(target=self._execute_steps,args=(3,self.last_step,self.placement_target,0))
             #self.send_thread.setDaemon(True)
             #self.send_thread.start()
@@ -568,6 +567,7 @@ class ExperimentGUI(Plugin):
                 subprocess.Popen(['python', self.YC_place_code])
             elif(self.panel_type=="leeward_tip_panel"):
                 subprocess.Popen(['python', self.YC_place_code2])
+            self.commands_sent=True
 
             """
             self._runscreen.vacuum.setText("ON")
