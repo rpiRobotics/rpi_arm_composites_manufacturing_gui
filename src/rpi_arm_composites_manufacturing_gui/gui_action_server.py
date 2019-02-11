@@ -1,5 +1,5 @@
 from execute_gui_steps import GUI_Step_Executor
-from rpi_arm_composites_manufacturing_gui.msg import GUIStepAction, GUIStepGoal
+from rpi_arm_composites_manufacturing_gui.msg import GUIStepAction, GUIStepGoal, GUIStepResult
 import rospy
 import actionlib
 class GUIExecutionServer(object):
@@ -29,10 +29,10 @@ class GUIExecutionServer(object):
         else:
             assert False, "Invalid command"
 
-        res = ProcessStepResult()
-        res.state=self.controller.state
-        res.target=self.controller.current_target if self.controller.current_target is not None else ""
-        res.payload=self.controller.current_payload if self.controller.current_payload is not None else ""
+        res = GUIStepResult()
+        res.state=goal.command
+        res.target=goal.target
+        
 
         self.server.set_succeeded(res)
 

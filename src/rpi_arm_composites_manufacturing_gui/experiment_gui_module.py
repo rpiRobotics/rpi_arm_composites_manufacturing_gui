@@ -187,7 +187,7 @@ class ExperimentGUI(Plugin):
         #<param name="start_time" command="date +'%d-%m-%Y_%Ih%Mm%S'"/>
         #rosbag record args="record -O arg('start_time')
 
-        self.step_executor=GUI_Step_Executor()
+        
         self._mainwidget = QWidget()
         self.layout = QGridLayout()
         self._mainwidget.setLayout(self.layout)
@@ -213,8 +213,11 @@ class ExperimentGUI(Plugin):
         self.grippercameraled=LEDIndicator()
         self.grippercameraled.setDisabled(True)  # Make the led non clickable
 
-        self.client=actionlib.SimpleActionClient('gui_step', ProcessStepAction)
+        self.client=actionlib.SimpleActionClient('gui_step', GUIStepAction)
         self.client.wait_for_server()
+        #Need this to pause motions
+        self.process_client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
+        self.process_client.wait_for_server()
         self.placement_target='panel_nest_leeward_mid_panel_target'
         self.panel_type='leeward_mid_panel'
         self.client_handle=None
@@ -230,6 +233,7 @@ class ExperimentGUI(Plugin):
         self.welcomescreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'welcomeconnectionscreen.ui')
         self.runscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreen.ui')
         self.errorscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'errordiagnosticscreen.ui')
+        self.rewound=False
 
         # Extend the widget with all attributes and children from UI file
         loadUi(self.welcomescreenui, self._welcomescreen)
@@ -281,7 +285,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.panelType.setReadOnly(True)
         self._runscreen.placementNestTarget.setReadOnly(True)
         self.commands_sent=False
-        #rospy.Subscriber("controller_state", controllerstate, self.callback)
+        rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
         rospy.Subscriber("process_state", ProcessState, self.process_state_set)
         self.force_torque_plot_widget=QWidget()
@@ -435,19 +439,20 @@ class ExperimentGUI(Plugin):
         self._runscreen.resetToHome.setDisabled(True)
         if(self.planListIndex+1==self._runscreen.planList.count()):
             self.planListIndex=0
+        elif(self.recover_from_pause):
+            self.recover_from_pause=False
         else:
             self.planListIndex+=1
-        g=GUIStepGoal(gui_execute_steps[self.planListIndex], self.panel_type)
-        self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+        g=GUIStepGoal(self.gui_execute_states[self.planListIndex], self.panel_type)
+        self.client_handle=self.client.send_goal(g,done_cb=self._process_done,feedback_cb=self._feedback_receive)
 
         #self.step_executor._nextPlan(self.panel_type,self.planListIndex)
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
-
-<<<<<<< HEAD
-=======
-        if(self.planListIndex==0):
-            subprocess.Popen(['python', self.reset_code])
+        if(self.rewound):
+            self.rewound=False
+            self._runscreen.previousPlan.setDisabled(False)
+        
             """
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
@@ -458,6 +463,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("Biased to 0")
             self._runscreen.pressureSensor.setText("[0,0,0]")
             """
+        '''
         elif(self.planListIndex==1):
             self.send_thread=threading.Thread(target=self._execute_steps,args=(1,self.last_step, self.panel_type,0))
             rospy.loginfo("thread_started")
@@ -465,8 +471,7 @@ class ExperimentGUI(Plugin):
             self.send_thread.start()
             self._send_event.set()
             #self._execute_step('plan_pickup_prepare',self.panel_type)
-            #self._execute_step('move_pickup_prepare')
-            """
+            #self._execute_step('move_pickup_prepare')'''"""
             self._runscreen.vacuum.setText("OFF")
             self._runscreen.panel.setText("Detached")
             self._runscreen.panelTag.setText("Localized")
@@ -475,13 +480,13 @@ class ExperimentGUI(Plugin):
             self._runscreen.gripperCamera.setText("OFF")
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[0,0,0]")
-            """
+            """"""
         elif(self.planListIndex==2):
+            
             self.send_thread=threading.Thread(target=self._execute_steps,args=(2,self.last_step))
             self.send_thread.setDaemon(True)
             self.send_thread.start()
-            self._send_event.set()
-            """
+            self._send_event.set()""""""
             self._execute_step('plan_pickup_lower')
             self._execute_step('move_pickup_lower')
             self._execute_step('plan_pickup_grab_first_step')
@@ -499,19 +504,19 @@ class ExperimentGUI(Plugin):
             self._runscreen.gripperCamera.setText("OFF")
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[0,0,0]")
-            """
+            """"""
         elif(self.planListIndex==3):
             if(self.panel_type=="leeward_mid_panel"):
                 subprocess.Popen(['python', self.YC_transport_code, 'leeward_mid_panel'])
             elif(self.panel_type=="leeward_tip_panel"):
                 subprocess.Popen(['python', self.YC_transport_code, 'leeward_tip_panel'])
             self.commands_sent=True
-            
+            """
             #self.send_thread=threading.Thread(target=self._execute_steps,args=(3,self.last_step,self.placement_target,0))
             #self.send_thread.setDaemon(True)
             #self.send_thread.start()
-            #self._send_event.set()
-            """
+            #self._send_event.set()"""
+    """
             self._execute_step('plan_transport_payload',self.placement_target)
             self._execute_step('move_transport_payload')
 
@@ -523,15 +528,14 @@ class ExperimentGUI(Plugin):
             self._runscreen.gripperCamera.setText("OFF")
             self._runscreen.forceSensor.setText("ON")
             self._runscreen.pressureSensor.setText("[1,1,1]")
-            """
+            """"""
         elif(self.planListIndex==4):
             if(self.panel_type=="leeward_mid_panel"):
                 subprocess.Popen(['python', self.YC_place_code])
             elif(self.panel_type=="leeward_tip_panel"):
                 subprocess.Popen(['python', self.YC_place_code2])
             self.commands_sent=True
-
-            """
+            """"""
             self._runscreen.vacuum.setText("ON")
             self._runscreen.panel.setText("Attached")
             self._runscreen.panelTag.setText("Localized")
@@ -541,16 +545,18 @@ class ExperimentGUI(Plugin):
             self._runscreen.forceSensor.setText("OFF")
             self._runscreen.pressureSensor.setText("[1,1,1]")
             """
-        if(self.rewound):
-            self.rewound=False
-            self._runscreen.previousPlan.setDisabled(False)
->>>>>>> 45ee077517bbbc1620f607ee2544b3fe244f5f07
+        
 
 
-    def _stopPlan():
-        g=GUIStepGoal("stop_plan", self.panel_type)
-        self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+
+    def _stopPlan(self):
+        self.client.cancel_all_goals()
+        self.process_client.cancel_all_goals()
+        
+        #g=GUIStepGoal("stop_plan", self.panel_type)
+        #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
         #self.step_executor._stopPlan()
+        self.recover_from_pause=True
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
@@ -562,6 +568,7 @@ class ExperimentGUI(Plugin):
             self.planListIndex-=1
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
+        self.rewound=True
         self._runscreen.previousPlan.setDisabled(True)
         g=GUIStepGoal("previous_plan", self.panel_type)
         self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._process_done)
@@ -595,8 +602,9 @@ class ExperimentGUI(Plugin):
         if reply==QMessageBox.Yes:
 
             self.planListIndex=0
-            self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive)
             g=GUIStepGoal("reset", self.panel_type)
+            self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+            
             #self.step_executor._nextPlan(None,self.planListIndex)
             self._runscreen.planList.item(self.planListIndex).setSelected(True)
             #subprocess.Popen(['python', self.reset_code])

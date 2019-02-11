@@ -82,8 +82,8 @@ class GUI_Step_Executor():
 
         rospy.loginfo("next plan")
 
-        if self.recover_from_pause and planListIndex !=0:
-            planListIndex-=1
+        #if self.recover_from_pause and planListIndex !=0:
+        #    planListIndex-=1
 
         #self._open_rviz_prompt()
         #self._raise_rviz_window()
@@ -154,7 +154,7 @@ class GUI_Step_Executor():
 
         if(self.rewound):
             self.rewound=False
-            self._runscreen.previousPlan.setDisabled(False)
+            
 
 
     def _previousPlan(self):
@@ -163,10 +163,10 @@ class GUI_Step_Executor():
 
 
     def _stopPlan(self):
-        #client=self.client
+        client=self.client
         #
         #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT, 0,[], [])
-        self.client_handle.cancel()
+        client.cancel_all_goals()
         #client.cancel_all_goals()
         self.recover_from_pause=True
 
