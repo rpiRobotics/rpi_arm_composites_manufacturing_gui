@@ -444,6 +444,107 @@ class ExperimentGUI(Plugin):
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
 
+<<<<<<< HEAD
+=======
+        if(self.planListIndex==0):
+            subprocess.Popen(['python', self.reset_code])
+            """
+            self._runscreen.vacuum.setText("OFF")
+            self._runscreen.panel.setText("Detached")
+            self._runscreen.panelTag.setText("Not Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("Biased to 0")
+            self._runscreen.pressureSensor.setText("[0,0,0]")
+            """
+        elif(self.planListIndex==1):
+            self.send_thread=threading.Thread(target=self._execute_steps,args=(1,self.last_step, self.panel_type,0))
+            rospy.loginfo("thread_started")
+            self.send_thread.setDaemon(True)
+            self.send_thread.start()
+            self._send_event.set()
+            #self._execute_step('plan_pickup_prepare',self.panel_type)
+            #self._execute_step('move_pickup_prepare')
+            """
+            self._runscreen.vacuum.setText("OFF")
+            self._runscreen.panel.setText("Detached")
+            self._runscreen.panelTag.setText("Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("ON")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("ON")
+            self._runscreen.pressureSensor.setText("[0,0,0]")
+            """
+        elif(self.planListIndex==2):
+            self.send_thread=threading.Thread(target=self._execute_steps,args=(2,self.last_step))
+            self.send_thread.setDaemon(True)
+            self.send_thread.start()
+            self._send_event.set()
+            """
+            self._execute_step('plan_pickup_lower')
+            self._execute_step('move_pickup_lower')
+            self._execute_step('plan_pickup_grab_first_step')
+            self._execute_step('move_pickup_grab_first_step')
+            self._execute_step('plan_pickup_grab_second_step')
+            self._execute_step('move_pickup_grab_second_step')
+            self._execute_step('plan_pickup_raise')
+            self._execute_step('move_pickup_raise')
+
+            self._runscreen.vacuum.setText("OFF")
+            self._runscreen.panel.setText("Detached")
+            self._runscreen.panelTag.setText("Localized")self.controller_commander=controller_commander_pkg.arm_composites_manufacturing_controller_commander()
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("ON")
+            self._runscreen.pressureSensor.setText("[0,0,0]")
+            """
+        elif(self.planListIndex==3):
+            if(self.panel_type=="leeward_mid_panel"):
+                subprocess.Popen(['python', self.YC_transport_code, 'leeward_mid_panel'])
+            elif(self.panel_type=="leeward_tip_panel"):
+                subprocess.Popen(['python', self.YC_transport_code, 'leeward_tip_panel'])
+            self.commands_sent=True
+            
+            #self.send_thread=threading.Thread(target=self._execute_steps,args=(3,self.last_step,self.placement_target,0))
+            #self.send_thread.setDaemon(True)
+            #self.send_thread.start()
+            #self._send_event.set()
+            """
+            self._execute_step('plan_transport_payload',self.placement_target)
+            self._execute_step('move_transport_payload')
+
+            self._runscreen.vacuum.setText("ON")
+            self._runscreen.panel.setText("Attached")
+            self._runscreen.panelTag.setText("Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("ON")
+            self._runscreen.pressureSensor.setText("[1,1,1]")
+            """
+        elif(self.planListIndex==4):
+            if(self.panel_type=="leeward_mid_panel"):
+                subprocess.Popen(['python', self.YC_place_code])
+            elif(self.panel_type=="leeward_tip_panel"):
+                subprocess.Popen(['python', self.YC_place_code2])
+            self.commands_sent=True
+
+            """
+            self._runscreen.vacuum.setText("ON")
+            self._runscreen.panel.setText("Attached")
+            self._runscreen.panelTag.setText("Localized")
+            self._runscreen.nestTag.setText("Not Localized")
+            self._runscreen.overheadCamera.setText("OFF")
+            self._runscreen.gripperCamera.setText("OFF")
+            self._runscreen.forceSensor.setText("OFF")
+            self._runscreen.pressureSensor.setText("[1,1,1]")
+            """
+        if(self.rewound):
+            self.rewound=False
+            self._runscreen.previousPlan.setDisabled(False)
+>>>>>>> 45ee077517bbbc1620f607ee2544b3fe244f5f07
 
 
     def _stopPlan():

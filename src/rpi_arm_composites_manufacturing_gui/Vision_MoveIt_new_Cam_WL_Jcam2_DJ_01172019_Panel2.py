@@ -241,6 +241,7 @@ def main():
     rospy.init_node('Placement_DJ_1', anonymous=True)
     process_client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
     process_client.wait_for_server()
+    process_state_pub = rospy.Publisher("process_state", ProcessState, queue_size=100, latch=True)
     #print "============ Starting setup"   
     
     listener = PayloadTransformListener()
@@ -1128,6 +1129,11 @@ def main():
     t2 = time.time()
     print 'Execution Finished.'
     print "Execution time: " + str(t2-t1) + " seconds"
+    s=ProcessState()
+    s.state="place_set"
+    s.payload="leeward_tip_panel"
+    s.target=""
+    process_state_pub.publish(s)
 
 if __name__ == '__main__':
     main()
