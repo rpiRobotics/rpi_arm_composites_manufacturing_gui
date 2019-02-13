@@ -73,15 +73,15 @@ def main():
     cnt =0.0
     for w in waypoints:
         cnt=cnt+1
-        if cnt%10==0:
+        #if cnt%10==0:
 
-            p3=JointTrajectoryPoint()
-            p3.positions = np.array(w)
-            p3.velocities = np.zeros((6,))
-            p3.accelerations = np.zeros((6,))
-            p3.time_from_start = rospy.Duration(t2 + cnt*0.02)
-            print p3.time_from_start.to_sec()
-            plan.joint_trajectory.points.append(p3)
+        p3=JointTrajectoryPoint()
+        p3.positions = np.array(w)
+        p3.velocities = np.zeros((6,))
+        p3.accelerations = np.zeros((6,))
+        p3.time_from_start = rospy.Duration(t2 + cnt*0.002)
+        print p3.time_from_start.to_sec()
+        plan.joint_trajectory.points.append(p3)
 
     
     p3=JointTrajectoryPoint()
@@ -89,7 +89,7 @@ def main():
     #p3.positions = np.array([-0.4619627594947815, 1.0956398248672485, -0.7398647665977478, 0.01724303886294365, 1.1420093774795532, -0.49965518712997437]) # panel 2
     p3.velocities = np.zeros((6,))
     p3.accelerations = np.zeros((6,))
-    p3.time_from_start = rospy.Duration(t2 + cnt*0.02+3)  
+    p3.time_from_start = rospy.Duration(t2 + cnt*0.002+2)  
     plan.joint_trajectory.points.append(p3)     
     
     controller_commander.execute(plan)

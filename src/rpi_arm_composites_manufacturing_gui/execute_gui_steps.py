@@ -67,11 +67,11 @@ class GUI_Step_Executor():
             #self.client.wait_for_result()
             
         self.start_step=0
-		self.current_state=steps_index
-		self.target_index=target_index
-		self.target=target
+        self.current_state=steps_index
+        self.target_index=target_index
+        self.target=target
         #for step_num in range(resume_index,len(self.execute_states[steps_index])):
-         if(self.recover_from_pause):
+        if(self.recover_from_pause):
             if('plan' in self.execute_states[steps_index][self.current_command]):
                 self.start_step=self.current_command
             else:
@@ -79,11 +79,10 @@ class GUI_Step_Executor():
 
             self.recover_from_pause=False
             
-		
-		if(self.start_step==target_index):
-			g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], target)
-		else:
-			g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], "")
+        if(self.start_step==target_index):
+            g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], target)
+        else:
+            g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], "")
             	
         	
 		
