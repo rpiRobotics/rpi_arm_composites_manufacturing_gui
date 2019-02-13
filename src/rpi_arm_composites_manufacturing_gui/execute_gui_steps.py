@@ -38,26 +38,33 @@ class GUI_Step_Executor():
         self.current_command=0
         self.target_index=-1
         self.target=None
+        self.gui_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
         
     def _feedback_receive(self,state,result):
-
+        rospy.loginfo("Feedback_receive")
         messagewindow=ErrorConfirm()
         QMessageBox.information(messagewindow, 'Error', 'Operation failed',str(result))
         
     def _next_command(self,state,result):
-    	
-    	if(self.recover_from_pause):
-    		return
-		self.current_command+=1
-		if(not(self.current_command==len(self.execute_states[steps_index]))):
-			
-		
-			if(self.current_command==self.target_index):
-				g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], target)
-			else:
-				g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], "")
-			self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive,done_cb=self._next_command)
-			#self.client.wait_for_result()
+    	rospy.loginfo("Next_command")
+        if(self.recover_from_pause):
+            return
+        self.current_command+=1
+        if(not(self.current_command==len(self.execute_states[self.current_state]))):
+            rospy.loginfo("Next_command")
+            
+            if(self.current_command==self.target_index):
+                g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], self.target)
+            else:
+                g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], "")
+            self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+            #self.client.wait_for_result()
+        else:
+            s=ProcessState()
+            s.state=str(self.execute_states[self.current_state])
+            s.payload=""
+            s.target=""
+            self.gui_state_pub.publish(s)
 
     def _execute_steps(self,steps_index, target="",target_index=-1):
         #TODO Create separate thread for each execution step that waits until in_process is true

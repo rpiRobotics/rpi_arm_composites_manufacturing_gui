@@ -288,7 +288,7 @@ class ExperimentGUI(Plugin):
         self.commands_sent=False
         rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
-        rospy.Subscriber("process_state", ProcessState, self.process_state_set)
+        rospy.Subscriber("GUI_state", ProcessState, self.process_state_set)
         self.force_torque_plot_widget=QWidget()
         self.joint_angle_plot_widget=QWidget()
         self._welcomescreen.openConfig.clicked.connect(self._open_config_options)
@@ -590,8 +590,10 @@ class ExperimentGUI(Plugin):
 
     def process_state_set(self,data):
         #if(data.state!="moving"):
-
-        pass
+        self._runscreen.nextPlan.setDisabled(False)
+        self._runscreen.previousPlan.setDisabled(False)
+        self._runscreen.resetToHome.setDisabled(False)
+        
 
 
 
