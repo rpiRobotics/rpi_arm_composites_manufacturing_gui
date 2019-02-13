@@ -213,8 +213,9 @@ class ExperimentGUI(Plugin):
         self.grippercameraled=LEDIndicator()
         self.grippercameraled.setDisabled(True)  # Make the led non clickable
 
-        self.client=actionlib.SimpleActionClient('gui_step', GUIStepAction)
-        self.client.wait_for_server()
+        #self.client=actionlib.SimpleActionClient('gui_step', GUIStepAction)
+        #self.client.wait_for_server()
+        self.step_executor=GUI_Step_Executor()
         #Need this to pause motions
         self.process_client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
         self.process_client.wait_for_server()
@@ -437,16 +438,17 @@ class ExperimentGUI(Plugin):
         self._runscreen.nextPlan.setDisabled(True)
         self._runscreen.previousPlan.setDisabled(True)
         self._runscreen.resetToHome.setDisabled(True)
+        #TODO Make it change color when in motion
         if(self.planListIndex+1==self._runscreen.planList.count()):
             self.planListIndex=0
         elif(self.recover_from_pause):
             self.recover_from_pause=False
         else:
             self.planListIndex+=1
-        g=GUIStepGoal(self.gui_execute_states[self.planListIndex], self.panel_type)
-        self.client_handle=self.client.send_goal(g,done_cb=self._process_done,feedback_cb=self._feedback_receive)
+        #g=GUIStepGoal(self.gui_execute_states[self.planListIndex], self.panel_type)
+        #self.client_handle=self.client.send_goal(g,done_cb=self._process_done,feedback_cb=self._feedback_receive)
 
-        #self.step_executor._nextPlan(self.panel_type,self.planListIndex)
+        self.step_executor._nextPlan(self.panel_type,self.planListIndex)
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
         if(self.rewound):
@@ -550,12 +552,12 @@ class ExperimentGUI(Plugin):
 
 
     def _stopPlan(self):
-        self.client.cancel_all_goals()
-        self.process_client.cancel_all_goals()
+        #self.client.cancel_all_goals()
+        #self.process_client.cancel_all_goals()
         
         #g=GUIStepGoal("stop_plan", self.panel_type)
         #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
-        #self.step_executor._stopPlan()
+        self.step_executor._stopPlan()
         self.recover_from_pause=True
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
@@ -570,9 +572,9 @@ class ExperimentGUI(Plugin):
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
         self.rewound=True
         self._runscreen.previousPlan.setDisabled(True)
-        g=GUIStepGoal("previous_plan", self.panel_type)
-        self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._process_done)
-        #self.step_executor._previousPlan(self.planListIndex)
+        #g=GUIStepGoal("previous_plan", self.panel_type)
+        #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._process_done)
+        self.step_executor._previousPlan(self.planListIndex)
 
     def _feedback_receive(self,state,result):
         messagewindow=VacuumConfirm()
@@ -602,10 +604,10 @@ class ExperimentGUI(Plugin):
         if reply==QMessageBox.Yes:
 
             self.planListIndex=0
-            g=GUIStepGoal("reset", self.panel_type)
-            self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+            #g=GUIStepGoal("reset", self.panel_type)
+            #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
             
-            #self.step_executor._nextPlan(None,self.planListIndex)
+            self.step_executor._nextPlan(None,self.planListIndex)
             self._runscreen.planList.item(self.planListIndex).setSelected(True)
             #subprocess.Popen(['python', self.reset_code])
         else:

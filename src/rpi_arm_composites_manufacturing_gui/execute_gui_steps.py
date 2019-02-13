@@ -32,38 +32,66 @@ class GUI_Step_Executor():
         self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
         self.client.wait_for_server()
         self.client_handle=None
-        self.last_step=0
+        self.start_step=0
         self.commands_sent=False
-
+        self.current_state=0
+        self.current_command=0
+        self.target_index=-1
+        self.target=None
+        
     def _feedback_receive(self,state,result):
 
         messagewindow=ErrorConfirm()
         QMessageBox.information(messagewindow, 'Error', 'Operation failed',str(result))
+        
+    def _next_command(self,state,result):
+    	
+    	if(self.recover_from_pause):
+    		return
+		self.current_command+=1
+		if(not(self.current_command==len(self.execute_states[steps_index]))):
+			
+		
+			if(self.current_command==self.target_index):
+				g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], target)
+			else:
+				g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], "")
+			self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+			#self.client.wait_for_result()
 
-    def _execute_steps(self,steps_index,resume_index=0, target="",target_index=-1):
+    def _execute_steps(self,steps_index, target="",target_index=-1):
         #TODO Create separate thread for each execution step that waits until in_process is true
         def send_action(goal):
 
-            self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive)
-            self.client.wait_for_result()
-
-        for step_num in range(resume_index,len(self.execute_states[steps_index])):
-            if(step_num==target_index):
-                g=ProcessStepGoal(self.execute_states[steps_index][step_num], target)
+            self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+            #self.client.wait_for_result()
+            
+        self.start_step=0
+		self.current_state=steps_index
+		self.target_index=target_index
+		self.target=target
+        #for step_num in range(resume_index,len(self.execute_states[steps_index])):
+         if(self.recover_from_pause):
+            if('plan' in self.execute_states[steps_index][self.current_command]):
+                self.start_step=self.current_command
             else:
-                g=ProcessStepGoal(self.execute_states[steps_index][step_num], "")
+                self.start_step=self.current_command-1
 
+            self.recover_from_pause=False
+            
+		
+		if(self.start_step==target_index):
+			g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], target)
+		else:
+			g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], "")
+            	
+        	
+		
             #self._send_event.wait()
-            if(self.recover_from_pause):
-                if('plan' in self.execute_states[steps_index][step_num]):
-                    self.last_step=step_num
-                else:
-                    self.last_step=step_num-1
-
-                self.recover_from_pause=False
-                break
-
-            send_action(g)
+        
+        
+		
+        send_action(g)
             #self.in_process=True
 
         
@@ -72,8 +100,8 @@ class GUI_Step_Executor():
 
         self.commands_sent=True
 
-        if( not self.recover_from_pause):
-            self.last_step=0
+        #if( not self.recover_from_pause):
+        #self.last_step=0
 
         
         #TODO: using client.get_state can implemen action state recall to eliminate plan from moveit?
@@ -106,16 +134,14 @@ class GUI_Step_Executor():
                 QMessageBox.information(messagewindow, 'Error', 'Reset Operation failed')
 
         elif(planListIndex==1):
-            self.send_thread=threading.Thread(target=self._execute_steps,args=(1,self.last_step, panel_type,0))
-            rospy.loginfo("thread_started")
-            self.send_thread.setDaemon(True)
-            self.send_thread.start()
+            
+            self._execute_steps(1,panel_type,0)
+            
             
 
         elif(planListIndex==2):
-            self.send_thread=threading.Thread(target=self._execute_steps,args=(2,self.last_step))
-            self.send_thread.setDaemon(True)
-            self.send_thread.start()
+            
+            self._execute_steps(2)
             
 
         elif(planListIndex==3):
@@ -169,6 +195,7 @@ class GUI_Step_Executor():
         client.cancel_all_goals()
         #client.cancel_all_goals()
         self.recover_from_pause=True
+        
 
 
 
