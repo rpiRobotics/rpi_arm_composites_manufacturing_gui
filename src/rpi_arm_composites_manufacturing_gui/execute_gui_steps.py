@@ -60,11 +60,7 @@ class GUI_Step_Executor():
             self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             #self.client.wait_for_result()
         else:
-            s=ProcessState()
-            s.state=str(self.execute_states[self.current_state])
-            s.payload=""
-            s.target=""
-            self.gui_state_pub.publish(s)
+            self._publish_state_message()
 
     def _execute_steps(self,steps_index, target="",target_index=-1):
         #TODO Create separate thread for each execution step that waits until in_process is true
@@ -85,7 +81,7 @@ class GUI_Step_Executor():
                 self.start_step=self.current_command-1
 
             self.recover_from_pause=False
-            
+        self.current_command=self.start_step
         if(self.start_step==target_index):
             g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], target)
         else:
@@ -133,7 +129,7 @@ class GUI_Step_Executor():
                 reset_popen.wait()
                 ret_code=reset_popen.returncode
             finally:
-                pass
+                self._publish_state_message()
 
             if ret_code != 0:
                 messagewindow=ErrorConfirm()
@@ -201,7 +197,13 @@ class GUI_Step_Executor():
         client.cancel_all_goals()
         #client.cancel_all_goals()
         self.recover_from_pause=True
-        
+
+    def _publish_state_message(self):
+        s=ProcessState()
+        s.state=str(self.execute_states[self.current_state])
+        s.payload=""
+        s.target=""
+        self.gui_state_pub.publish(s)
 
 
 

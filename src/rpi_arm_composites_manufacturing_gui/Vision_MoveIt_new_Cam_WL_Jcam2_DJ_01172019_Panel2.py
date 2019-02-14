@@ -241,7 +241,7 @@ def main():
     rospy.init_node('Placement_DJ_1', anonymous=True)
     process_client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
     process_client.wait_for_server()
-    process_state_pub = rospy.Publisher("process_state", ProcessState, queue_size=100, latch=True)
+    process_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
     #print "============ Starting setup"   
     
     listener = PayloadTransformListener()
@@ -1118,7 +1118,8 @@ def main():
     trans_current = [Cur_Pose.pose.position.x,Cur_Pose.pose.position.y,Cur_Pose.pose.position.z]
     pose_target2.R = rox.q2R([rot_current[0], rot_current[1], rot_current[2], rot_current[3]])
     pose_target2.p = trans_current
-    pose_target2.p[2] += 0.3
+    pose_target2.p[2] += 0.25
+    pose_target2.p[1] += -0.01
 #
 #
 #    #print 'Target:',pose_target3

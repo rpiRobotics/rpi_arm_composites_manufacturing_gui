@@ -12,7 +12,7 @@ def main():
     rospy.init_node("test_moveit_commander_custom_trajectory", anonymous=True)
     final_pos=None
     controller_commander=controller_commander_pkg.ControllerCommander()
-    process_state_pub = rospy.Publisher("process_state", ProcessState, queue_size=100, latch=True)
+    process_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
     transport1=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Joint_all_Panel1.txt')
     transport2=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Joint_all_Panel2.txt')
 

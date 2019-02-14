@@ -239,7 +239,7 @@ def main():
     #Initialize ros node of this process
     rospy.init_node('Placement_DJ_1', anonymous=True)
     process_client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
-    process_state_pub = rospy.Publisher("process_state", ProcessState, queue_size=100, latch=True)
+    process_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
     process_client.wait_for_server()
     listener = PayloadTransformListener()
     rapid_node = rapid_node_pkg.RAPIDCommander()
