@@ -23,8 +23,8 @@ class GUI_Step_Executor():
         self.recover_from_pause=False
         self.rewound=False
 
-        self.execute_states=[['plan_to_reset_position','move_to_reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
-                            ['plan_transport_payload','move_transport_payload'],['plan_place_set_second_step']]
+        self.execute_states=[['reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
+                            ['transport_payload'],['place_panel'],['plan_place_set_second_step'],['stop_motion']]
         self.reset_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Reset_Start_pos_wason2.py')
         self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel1.py')
         self.YC_place_code2=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel2.py')
@@ -125,15 +125,12 @@ class GUI_Step_Executor():
         if(planListIndex==0):
             ret_code=-1
             try:
-                reset_popen=subprocess.Popen(['python', self.reset_code])
-                reset_popen.wait()
-                ret_code=reset_popen.returncode
+                g=ProcessStepGoal(self.execute_states[0][0], "")
+                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             finally:
-                self._publish_state_message()
-
-            if ret_code != 0:
-                messagewindow=ErrorConfirm()
-                QMessageBox.information(messagewindow, 'Error', 'Reset Operation failed')
+                pass
+                #self._publish_state_message()
+            
 
         elif(planListIndex==1):
             
@@ -149,36 +146,22 @@ class GUI_Step_Executor():
         elif(planListIndex==3):
             retcode=-1
             try:
-                if(panel_type=="leeward_mid_panel"):
-                    p=subprocess.Popen(['python', self.YC_transport_code, 'leeward_mid_panel'])
-                elif(panel_type=="leeward_tip_panel"):
-                    p=subprocess.Popen(['python', self.YC_transport_code, 'leeward_tip_panel'])
-                p.wait()
-                ret_code=p.returncode
+                g=ProcessStepGoal(self.execute_states[3][0], panel_type)
+                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             finally:
                 pass
-
-            if ret_code != 0:
-                messagewindow=ErrorConfirm()
-                QMessageBox.information(messagewindow, 'Error', 'Operation failed')
 
 
         elif(planListIndex==4):
             retcode=-1
             try:
-                if(panel_type=="leeward_mid_panel"):
-                    p=subprocess.Popen(['python', self.YC_place_code])
-                elif(panel_type=="leeward_tip_panel"):
-                    p=subprocess.Popen(['python', self.YC_place_code2])
-                p.wait()
-                ret_code=p.returncode
+                g=ProcessStepGoal(self.execute_states[4][0], panel_type)
+                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             finally:
                 pass
 
 
-            if ret_code != 0:
-                messagewindow=ErrorConfirm()
-                QMessageBox.information(messagewindow, 'Error', 'Operation failed')
+            
 
         if(self.rewound):
             self.rewound=False
@@ -195,6 +178,8 @@ class GUI_Step_Executor():
         #
         #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT, 0,[], [])
         client.cancel_all_goals()
+        g=ProcessStepGoal(self.execute_states[6][0], "")
+        self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
         #client.cancel_all_goals()
         self.recover_from_pause=True
 
