@@ -217,7 +217,7 @@ class ExperimentGUI(Plugin):
         #self.client.wait_for_server()
         self.step_executor=GUI_Step_Executor()
         #Need this to pause motions
-        self.process_client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
+        self.process_client=actionlib.ActionClient('process_step', ProcessStepAction)
         self.process_client.wait_for_server()
         self.placement_target='panel_nest_leeward_mid_panel_target'
         self.panel_type='leeward_mid_panel'

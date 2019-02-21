@@ -29,7 +29,7 @@ class GUI_Step_Executor():
         self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel1.py')
         self.YC_place_code2=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel2.py')
         self.YC_transport_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'test_moveit_commander_custom_trajectory_YC_TransportPath_Panels.py')
-        self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
+        self.client=actionlib.ActionClient('process_step', ProcessStepAction)
         self.client.wait_for_server()
         self.client_handle=None
         self.start_step=0
@@ -39,13 +39,15 @@ class GUI_Step_Executor():
         self.target_index=-1
         self.target=None
         self.gui_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
+        rospy.Subscriber("process_state",self._next_command)
+        
         
     def _feedback_receive(self,state,result):
         rospy.loginfo("Feedback_receive")
         messagewindow=ErrorConfirm()
         QMessageBox.information(messagewindow, 'Error', 'Operation failed',str(result))
         
-    def _next_command(self,state,result):
+    def _next_command(self,data):
     	rospy.loginfo("Next_command")
         if(self.recover_from_pause):
             return
@@ -57,7 +59,8 @@ class GUI_Step_Executor():
                 g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], self.target)
             else:
                 g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], "")
-            self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+            self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+            #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             #self.client.wait_for_result()
         else:
             self._publish_state_message()
@@ -65,8 +68,8 @@ class GUI_Step_Executor():
     def _execute_steps(self,steps_index, target="",target_index=-1):
         #TODO Create separate thread for each execution step that waits until in_process is true
         def send_action(goal):
-
-            self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+            self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive)
+            #self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             #self.client.wait_for_result()
             
         self.start_step=0
@@ -126,7 +129,8 @@ class GUI_Step_Executor():
             ret_code=-1
             try:
                 g=ProcessStepGoal(self.execute_states[0][0], "")
-                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+                #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             finally:
                 pass
                 #self._publish_state_message()
@@ -147,7 +151,8 @@ class GUI_Step_Executor():
             retcode=-1
             try:
                 g=ProcessStepGoal(self.execute_states[3][0], panel_type)
-                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+                #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             finally:
                 pass
 
@@ -156,7 +161,8 @@ class GUI_Step_Executor():
             retcode=-1
             try:
                 g=ProcessStepGoal(self.execute_states[4][0], panel_type)
-                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+                #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             finally:
                 pass
 
