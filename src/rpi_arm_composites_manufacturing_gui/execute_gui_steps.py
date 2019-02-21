@@ -39,7 +39,7 @@ class GUI_Step_Executor():
         self.target_index=-1
         self.target=None
         self.gui_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
-        rospy.Subscriber("process_state",self._next_command)
+        rospy.Subscriber("process_state",ProcessState,self._next_command)
         
         
     def _feedback_receive(self,state,result):
@@ -52,8 +52,10 @@ class GUI_Step_Executor():
         if(self.recover_from_pause):
             return
         self.current_command+=1
-        if(not(self.current_command==len(self.execute_states[self.current_state]))):
-            rospy.loginfo("Next_command")
+        rospy.loginfo("current state %i"%self.current_state)
+        rospy.loginfo("current command %i"%self.current_command)
+        if(not(self.current_command>=len(self.execute_states[self.current_state]))):
+            
             
             if(self.current_command==self.target_index):
                 g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], self.target)
@@ -183,7 +185,8 @@ class GUI_Step_Executor():
         client=self.client
         #
         #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT, 0,[], [])
-        client.cancel_all_goals()
+        #client.cancel_all_goals()
+        rospy.loginfo("cancelled all goals")
         g=ProcessStepGoal(self.execute_states[6][0], "")
         self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
         #client.cancel_all_goals()
