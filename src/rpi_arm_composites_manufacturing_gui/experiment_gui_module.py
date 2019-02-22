@@ -21,7 +21,7 @@ from rpi_arm_composites_manufacturing_gui.msg import GUIStepAction, GUIStepGoal
 
 from safe_kinematic_controller.msg import ControllerState as controllerstate
 from safe_kinematic_controller.srv import SetControllerMode, SetControllerModeRequest
-from rpi_arm_composites_manufacturing_process.msg import ProcessStepAction, ProcessStepGoal, ProcessState
+from rpi_arm_composites_manufacturing_process.msg import ProcessStepAction, ProcessStepGoal, ProcessState, ProcessStepFeedback
 import actionlib
 from rqt_console import console_widget
 from rqt_console import message_proxy_model
@@ -216,6 +216,7 @@ class ExperimentGUI(Plugin):
         #self.client=actionlib.SimpleActionClient('gui_step', GUIStepAction)
         #self.client.wait_for_server()
         self.step_executor=GUI_Step_Executor()
+        self.step_executor.error_function=self._feedback_receive
         #Need this to pause motions
         self.process_client=actionlib.ActionClient('process_step', ProcessStepAction)
         self.process_client.wait_for_server()
@@ -289,6 +290,7 @@ class ExperimentGUI(Plugin):
         rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
         rospy.Subscriber("GUI_state", ProcessState, self.process_state_set)
+        #rospy.Subscriber('gui_error', String, self._feedback_receive())
         self.force_torque_plot_widget=QWidget()
         self.joint_angle_plot_widget=QWidget()
         self._welcomescreen.openConfig.clicked.connect(self._open_config_options)
@@ -574,14 +576,16 @@ class ExperimentGUI(Plugin):
         self._runscreen.previousPlan.setDisabled(True)
         #g=GUIStepGoal("previous_plan", self.panel_type)
         #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._process_done)
-        self.step_executor._previousPlan(self.planListIndex)
+        self.step_executor._previousPlan()
 
-    def _feedback_receive(self,state,result):
-        messagewindow=VacuumConfirm()
-        QMessageBox.information(messagewindow, 'Error', 'Operation failed',str(result))
-        self._runscreen.nextPlan.setDisabled(False)
-        self._runscreen.previousPlan.setDisabled(False)
-        self._runscreen.resetToHome.setDisabled(False)
+    def _feedback_receive(self, result):
+        with self._lock:
+            messagewindow=VacuumConfirm()
+            error=result
+            confirm=QMessageBox.warning(messagewindow, 'Error', 'Operation failed with error:\n'+error,QMessageBox.Ok,QMessageBox.Ok)
+            self._runscreen.nextPlan.setDisabled(False)
+            self._runscreen.previousPlan.setDisabled(False)
+            self._runscreen.resetToHome.setDisabled(False)
 
     def _process_done(self,state,result):
         self._runscreen.nextPlan.setDisabled(False)

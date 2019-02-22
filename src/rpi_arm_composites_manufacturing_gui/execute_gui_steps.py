@@ -7,6 +7,7 @@ import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from python_qt_binding.QtWidgets import QWidget, QDialog
 import actionlib
 from rpi_arm_composites_manufacturing_process.msg import ProcessStepAction, ProcessStepGoal, ProcessState
 import threading
@@ -38,16 +39,20 @@ class GUI_Step_Executor():
         self.current_command=0
         self.target_index=-1
         self.target=None
+        self.error_function=None
         self.gui_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
         rospy.Subscriber("process_state",ProcessState,self._next_command)
         
-        
+    
     def _feedback_receive(self,state,result):
         rospy.loginfo("Feedback_receive")
-        messagewindow=ErrorConfirm()
-        QMessageBox.information(messagewindow, 'Error', 'Operation failed',str(result))
-        self._publish_state_message()
+        error=result.error_msg
+        self.error_function(error)
+        #messagewindow=ErrorConfirm()
+        #confirm=QMessageBox.warning(messagewindow, 'Error', 'Operation failed with error:\n'+error,QMessageBox.Ok,QMessageBox.Ok)
         
+        self._publish_state_message()
+    
     def _next_command(self,data):
     	rospy.loginfo("Next_command")
         if(self.recover_from_pause):
