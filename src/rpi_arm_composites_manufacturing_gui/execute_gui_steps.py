@@ -46,6 +46,7 @@ class GUI_Step_Executor():
         rospy.loginfo("Feedback_receive")
         messagewindow=ErrorConfirm()
         QMessageBox.information(messagewindow, 'Error', 'Operation failed',str(result))
+        self._publish_state_message()
         
     def _next_command(self,data):
     	rospy.loginfo("Next_command")
