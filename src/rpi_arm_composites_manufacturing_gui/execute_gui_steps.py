@@ -18,8 +18,12 @@ class ErrorConfirm(QWidget):
 
 
 
-class GUI_Step_Executor():
+class GUI_Step_Executor(QObject):
+    
+    error_signal= pyqtSignal()
+    
     def __init__(self):
+        super(GUI_Step_Executor, self).__init__()
         self.in_process=None
         self.recover_from_pause=False
         self.rewound=False
@@ -39,15 +43,18 @@ class GUI_Step_Executor():
         self.current_command=0
         self.target_index=-1
         self.target=None
-        self.error_function=None
+        self.error=None
         self.gui_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
         rospy.Subscriber("process_state",ProcessState,self._next_command)
+        
         
     
     def _feedback_receive(self,state,result):
         rospy.loginfo("Feedback_receive")
-        error=result.error_msg
-        self.error_function(error)
+        self.error=result.error_msg
+        self.error_signal.emit()
+        
+        #self.error_function(error)
         #messagewindow=ErrorConfirm()
         #confirm=QMessageBox.warning(messagewindow, 'Error', 'Operation failed with error:\n'+error,QMessageBox.Ok,QMessageBox.Ok)
         

@@ -126,19 +126,6 @@ SCREEN</string>
      <item row="0" column="2">
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <widget class="QPushButton" name="toErrorScreen">
-         <property name="font">
-          <font>
-           <pointsize>20</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Error/Diagnostic
- Screen</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QPushButton" name="accessTeleop">
          <property name="minimumSize">
           <size>

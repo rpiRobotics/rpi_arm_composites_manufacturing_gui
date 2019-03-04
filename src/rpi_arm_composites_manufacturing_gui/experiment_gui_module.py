@@ -165,7 +165,7 @@ class ExperimentGUI(Plugin):
 
         self.setObjectName('MyPlugin')
         self._lock=threading.Lock()
-        self._send_event=threading.Event()
+        #self._send_event=threading.Event()
         self.controller_commander=controller_commander_pkg.ControllerCommander()
         # Process standalone plugin command-line arguments
         from argparse import ArgumentParser
@@ -213,18 +213,27 @@ class ExperimentGUI(Plugin):
         self.grippercameraled=LEDIndicator()
         self.grippercameraled.setDisabled(True)  # Make the led non clickable
 
-        #self.client=actionlib.SimpleActionClient('gui_step', GUIStepAction)
-        #self.client.wait_for_server()
+        
         self.step_executor=GUI_Step_Executor()
-        self.step_executor.error_function=self._feedback_receive
+        self.step_executor.error_signal.connect(self._feedback_receive)
+        #self.step_executor.error_function=self._feedback_receive
         #Need this to pause motions
         self.process_client=actionlib.ActionClient('process_step', ProcessStepAction)
         self.process_client.wait_for_server()
         self.placement_target='panel_nest_leeward_mid_panel_target'
         self.panel_type='leeward_mid_panel'
         self.client_handle=None
-        self.led_change(self.overheadcameraled,True)
-        self.led_change(self.grippercameraled,True)
+        
+        service_list=rosservice.get_service_list()
+        if('/overhead_camera/trigger' in service_list):
+            self.led_change(self.overheadcameraled,True)
+        else:
+            self.led_change(self.overheadcameraled,False)
+        if('/gripper_camera_2/trigger' in service_list):
+            self.led_change(self.grippercameraled,True)
+        else:
+            self.led_change(self.grippercameraled,False)
+
         self.mode=0
         #self.rewound=False
         self.count=0
@@ -297,7 +306,7 @@ class ExperimentGUI(Plugin):
         #self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_login_prompt)
         self._welcomescreen.toRunScreen.pressed.connect(self._to_run_screen)
         self._runscreen.backToWelcome.pressed.connect(self._to_welcome_screen)
-        self._runscreen.toErrorScreen.pressed.connect(self._to_error_screen)
+        #self._runscreen.toErrorScreen.pressed.connect(self._to_error_screen)
         self._runscreen.nextPlan.pressed.connect(self._next_plan)
         self._runscreen.previousPlan.pressed.connect(self._previousPlan)
         self._runscreen.resetToHome.pressed.connect(self._reset_position)
@@ -341,6 +350,13 @@ class ExperimentGUI(Plugin):
 
         self.stackedWidget.setCurrentIndex(1)
         self._runscreen.panelType.setText(self.panel_type)
+        if(self.panel_type=='leeward_mid_panel'):
+            self._runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
+        elif(self.panel_type=='leeward_tip_panel'):
+            self._runscreen.placementNestTarget.setText("Leeward Tip Panel Nest")
+        else:
+            raise Exception('Unknown panel type selected')
+
 
     def _to_error_screen(self):
         self.stackedWidget.setCurrentIndex(2)
@@ -577,12 +593,13 @@ class ExperimentGUI(Plugin):
         #g=GUIStepGoal("previous_plan", self.panel_type)
         #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._process_done)
         self.step_executor._previousPlan()
-
-    def _feedback_receive(self, result):
+    
+    @pyqtSlot()
+    def _feedback_receive(self):
         with self._lock:
             messagewindow=VacuumConfirm()
-            error=result
-            confirm=QMessageBox.warning(messagewindow, 'Error', 'Operation failed with error:\n'+error,QMessageBox.Ok,QMessageBox.Ok)
+            error_msg=self.step_executor.error
+            confirm=QMessageBox.warning(messagewindow, 'Error', 'Operation failed with error:\n'+error_msg,QMessageBox.Ok,QMessageBox.Ok)
             self._runscreen.nextPlan.setDisabled(False)
             self._runscreen.previousPlan.setDisabled(False)
             self._runscreen.resetToHome.setDisabled(False)
@@ -759,6 +776,9 @@ class ExperimentGUI(Plugin):
                 else:
 
                     self.led_change(self.forcetorqueled,True)
+                #self.service_list=rosservice.get_service_list()
+                
+
 
                 #if(self.disconnectreturnoption and data.error_msg==""):
                  #   self.disconnectreturnoption=False
