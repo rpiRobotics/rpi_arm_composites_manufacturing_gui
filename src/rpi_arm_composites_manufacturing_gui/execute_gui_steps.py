@@ -12,11 +12,6 @@ import actionlib
 from rpi_arm_composites_manufacturing_process.msg import ProcessStepAction, ProcessStepGoal, ProcessState
 import threading
 
-class ErrorConfirm(QWidget):
-    def __init__(self):
-        super(ErrorConfirm,self).__init__()
-
-
 
 class GUI_Step_Executor(QObject):
     
@@ -29,7 +24,7 @@ class GUI_Step_Executor(QObject):
         self.rewound=False
 
         self.execute_states=[['reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
-                            ['transport_payload'],['place_panel'],['plan_place_set_second_step'],['stop_motion']]
+                            ['transport_payload'],['place_panel'],['plan_place_set_second_step'],['stop_motion'],['rewind_motion']]
         self.reset_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Reset_Start_pos_wason2.py')
         self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel1.py')
         self.YC_place_code2=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel2.py')
@@ -48,15 +43,16 @@ class GUI_Step_Executor(QObject):
         rospy.Subscriber("process_state",ProcessState,self._next_command)
         
         
-    
+    #Receives error messages from process controller action calls and signals gui to put up alert
     def _feedback_receive(self,state,result):
+        """
+        emits signal when error is received from process controller
+    
+        
+        """
         rospy.loginfo("Feedback_receive")
         self.error=result.error_msg
         self.error_signal.emit()
-        
-        #self.error_function(error)
-        #messagewindow=ErrorConfirm()
-        #confirm=QMessageBox.warning(messagewindow, 'Error', 'Operation failed with error:\n'+error,QMessageBox.Ok,QMessageBox.Ok)
         
         self._publish_state_message()
     
@@ -190,7 +186,12 @@ class GUI_Step_Executor(QObject):
 
 
     def _previousPlan(self):
-
+        try:
+            g=ProcessStepGoal(self.execute_states[7][0], "")
+            self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+            #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+        finally:
+            pass
         self.rewound=True
 
 
