@@ -588,8 +588,8 @@ class ExperimentGUI(Plugin):
             self.planListIndex-=1
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
-        self.rewound=True
-        self._runscreen.previousPlan.setDisabled(True)
+       # self.rewound=True
+        #self._runscreen.previousPlan.setDisabled(True)
         #g=GUIStepGoal("previous_plan", self.panel_type)
         #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._process_done)
         self.step_executor._previousPlan()
