@@ -139,7 +139,7 @@ class GUI_Step_Executor(QObject):
     #TODO: make it so that next plan throws it back into automatic mode every time and then teleop switches to teleop mode and plans the next move
     def _nextPlan(self,panel_type,planListIndex):
 
-        rospy.loginfo("next plan planListIndex: "+str(planListIndex)
+        rospy.loginfo("next plan planListIndex: "+str(planListIndex))
 
         #if self.recover_from_pause and planListIndex !=0:
         #    planListIndex-=1
@@ -152,7 +152,7 @@ class GUI_Step_Executor(QObject):
         time.sleep(1)
 
         if(planListIndex==0):
-            ret_code=-1
+            
             self._execute_steps(0)
             '''try:
                 g=ProcessStepGoal(self.execute_states[0][0], "")
@@ -177,7 +177,7 @@ class GUI_Step_Executor(QObject):
         
 
         elif(planListIndex==3):
-            retcode=-1
+            
             try:
                 g=ProcessStepGoal(self.execute_states[3][0], panel_type)
                 self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
@@ -187,7 +187,7 @@ class GUI_Step_Executor(QObject):
 
 
         elif(planListIndex==4):
-            retcode=-1
+            
             try:
                 g=ProcessStepGoal(self.execute_states[4][0], panel_type)
                 self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
