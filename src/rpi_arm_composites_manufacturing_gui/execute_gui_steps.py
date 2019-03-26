@@ -55,7 +55,7 @@ class GUI_Step_Executor(QObject):
         self.error_signal.emit()
         
         self._publish_state_message()
-    
+    #TODO: Solve duplication problem?
     def _next_command(self,data):
     	rospy.loginfo("Next_command")
         if(self.recover_from_pause):
@@ -64,6 +64,7 @@ class GUI_Step_Executor(QObject):
         rospy.loginfo("current state %i"%self.current_state)
         rospy.loginfo("current command %i"%self.current_command)
         if(not(self.current_command>=len(self.execute_states[self.current_state]))):
+        
             
             
             if(self.current_command==self.target_index):
@@ -74,6 +75,9 @@ class GUI_Step_Executor(QObject):
             #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             #self.client.wait_for_result()
         else:
+            rospy.loginfo("done with command")
+            rospy.loginfo(str(len(self.execute_states[self.current_state])))
+            
             self._publish_state_message()
 
     def _execute_steps(self,steps_index, target="",target_index=-1):
@@ -137,6 +141,7 @@ class GUI_Step_Executor(QObject):
         time.sleep(1)
 
         if(planListIndex==0):
+            rospy.loginfo("reset_commanded")
             ret_code=-1
             try:
                 g=ProcessStepGoal(self.execute_states[0][0], "")
