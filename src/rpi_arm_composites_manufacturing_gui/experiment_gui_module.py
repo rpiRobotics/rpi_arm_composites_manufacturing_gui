@@ -162,8 +162,8 @@ class ExperimentGUI(Plugin):
         self.gui_execute_states=["reset","panel_pickup","pickup_grab","transport_panel","place_panel"]
         self.execute_states=[['plan_to_reset_position','move_to_reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
                             ['plan_transport_payload','move_transport_payload'],['plan_place_set_second_step']]
-        self.teleop_modes=['Off','Joint','Cartesian','Cylindrical','Spherical']
-        self.current_teleop_mode=0
+        self.teleop_modes=['Error','Off','Joint','Cartesian','Cylindrical','Spherical']
+        self.current_teleop_mode=1
         self.teleop_button_string="Tele-op\nMode:\n"
         self.setObjectName('MyPlugin')
         self._lock=threading.Lock()
@@ -668,17 +668,18 @@ class ExperimentGUI(Plugin):
             
             try:
                 if(self.current_teleop_mode==len(self.teleop_modes)):
-                    self.current_teleop_mode=0
+                    self.current_teleop_mode=1
                     self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
-                    
                 elif(self.current_teleop_mode==1):
+                    self.reset_teleop_button()
+                elif(self.current_teleop_mode==2):
                     self.controller_commander.set_controller_mode(self.controller_commander.MODE_JOINT_TELEOP,1,[],[])
                     
-                elif(self.current_teleop_mode==2):
-                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_CARTESIAN_TELEOP,1,[],[])
                 elif(self.current_teleop_mode==3):
-                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_CYLINDRICAL_TELEOP,1,[],[])
+                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_CARTESIAN_TELEOP,1,[],[])
                 elif(self.current_teleop_mode==4):
+                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_CYLINDRICAL_TELEOP,1,[],[])
+                elif(self.current_teleop_mode==5):
                     self.controller_commander.set_controller_mode(self.controller_commander.MODE_SPHERICAL_TELEOP,1,[],[])
                 rospy.loginfo("Entering teleop mode:"+self.teleop_modes[self.current_teleop_mode])
                 button_string=self.teleop_button_string+self.teleop_modes[self.current_teleop_mode]
@@ -702,9 +703,12 @@ class ExperimentGUI(Plugin):
         res=self._set_controller_mode(req)
         if (res.error_code.mode != ControllerMode.MODE_SUCCESS): raise Exception("Could not set controller mode")
 
+    def error_recovery_button(self):
+        self.current_teleop_mode=0
+        self._runscreen.accessTeleop.setText("Recover from Error")
 
     def reset_teleop_button(self):
-        self.current_teleop_mode=0
+        self.current_teleop_mode=1
         self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
         button_string=self.teleop_button_string+self.teleop_modes[self.current_teleop_mode]
         self._runscreen.accessTeleop.setText(button_string)
@@ -809,7 +813,7 @@ class ExperimentGUI(Plugin):
 
                     self.led_change(self.robotconnectionled,False)
                     self.led_change(self.runscreenstatusled,False)
-                    self.reset_teleop_button()
+                    self.error_recovery_button()
                 else:
                     self.led_change(self.robotconnectionled,True)
                     self.led_change(self.runscreenstatusled,True)

@@ -104,12 +104,16 @@ class GUI_Step_Executor(QObject):
         self.target=target
         #for step_num in range(resume_index,len(self.execute_states[steps_index])):
         if(self.recover_from_pause):
-            if('plan' in self.execute_states[steps_index][self.current_command]):
-                self.start_step=self.current_command
+            if(steps_index!=0):
+                if('plan' in self.execute_states[steps_index][self.current_command]):
+                    self.start_step=self.current_command
+                else:
+                    self.start_step=self.current_command-1
             else:
-                self.start_step=self.current_command-1
+                pass
 
             self.recover_from_pause=False
+
         self.current_command=self.start_step
         if(self.start_step==target_index):
             g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], target)
@@ -218,9 +222,9 @@ class GUI_Step_Executor(QObject):
         #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT, 0,[], [])
         #client.cancel_all_goals()
         rospy.loginfo("cancelled all goals")
-        g=ProcessStepGoal(self.execute_states[6][0], "")
-        self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
-        #client.cancel_all_goals()
+        #g=ProcessStepGoal(self.execute_states[6][0], "")
+        #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+        client.cancel_all_goals()
         self.recover_from_pause=True
 
     def _publish_state_message(self):
