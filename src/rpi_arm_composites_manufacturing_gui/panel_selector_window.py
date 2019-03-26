@@ -25,20 +25,20 @@ class PanelSelectorWindow(QDialog):
         self.panelType.insertItem(1,'Leeward Mid Panel',QVariant("leeward_mid_panel"))
         self.panelType.insertItem(2,'Leeward Tip Panel',QVariant("leeward_tip_panel"))
         self.panelType.currentIndexChanged.connect(self.panel_selected)
-        self.graphics_scene=QGraphicsScene(self.workspaceView)
-        self.robot_representation=QGraphicsEllipseItem(-50,0,100,100)
-        self.robot_representation.setBrush(QColor(255,170,0,255))
-        self.placement_nest_1=QGraphicsRectItem(100,60,100,100)
-        self.placement_nest_2=QGraphicsRectItem(100,-40,100,100)
-        self.pickup_nest_1=QGraphicsRectItem(-70,150,100,100)
+        #self.graphics_scene=QGraphicsScene(self.workspaceView)
+        #self.robot_representation=QGraphicsEllipseItem(-50,0,100,100)
+        #self.robot_representation.setBrush(QColor(255,170,0,255))
+        #self.placement_nest_1=QGraphicsRectItem(100,60,100,100)
+        #self.placement_nest_2=QGraphicsRectItem(100,-40,100,100)
+        #self.pickup_nest_1=QGraphicsRectItem(-70,150,100,100)
 
         self.continue_button.pressed.connect(self.pass_values)
 
-        self.graphics_scene.addItem(self.robot_representation)
-        self.graphics_scene.addItem(self.placement_nest_1)
-        self.graphics_scene.addItem(self.placement_nest_2)
-        self.graphics_scene.addItem(self.pickup_nest_1)
-        self.workspaceView.setScene(self.graphics_scene)
+        #self.graphics_scene.addItem(self.robot_representation)
+        #self.graphics_scene.addItem(self.placement_nest_1)
+        #self.graphics_scene.addItem(self.placement_nest_2)
+        #self.graphics_scene.addItem(self.pickup_nest_1)
+        #self.workspaceView.setScene(self.graphics_scene)
 
 
 #    def placement_nest_1_selected(self):
@@ -56,7 +56,7 @@ class PanelSelectorWindow(QDialog):
     def panel_selected(self,panel_index):
         if(panel_index!=0):
             self.panel=self.panelType.currentData()
-
+    '''
     def mousePressEvent(self,event):
         if(event.x()>295 and event.x()<395 and event.y()>120 and event.y()<220):
             self.placement_nest_1.setBrush(Qt.darkGray)
@@ -89,7 +89,7 @@ class PanelSelectorWindow(QDialog):
             else:
                 self.pickup_chosen='panel_pickup_1'
                 self.pickupLocation.setText("Panel Pick Up Nest")
-
+    '''
     def pass_values(self):
         self.accept()
 

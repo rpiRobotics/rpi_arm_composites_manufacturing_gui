@@ -162,7 +162,9 @@ class ExperimentGUI(Plugin):
         self.gui_execute_states=["reset","panel_pickup","pickup_grab","transport_panel","place_panel"]
         self.execute_states=[['plan_to_reset_position','move_to_reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
                             ['plan_transport_payload','move_transport_payload'],['plan_place_set_second_step']]
-
+        self.teleop_modes=['Off','Joint','Cartesian','Cylindrical','Spherical']
+        self.current_teleop_mode=0
+        self.teleop_button_string="Tele-op\nMode:\n"
         self.setObjectName('MyPlugin')
         self._lock=threading.Lock()
         #self._send_event=threading.Event()
@@ -212,7 +214,8 @@ class ExperimentGUI(Plugin):
         self.overheadcameraled.setDisabled(True)  # Make the led non clickable
         self.grippercameraled=LEDIndicator()
         self.grippercameraled.setDisabled(True)  # Make the led non clickable
-
+        self.runscreenstatusled=LEDIndicator()
+        self.runscreenstatusled.setDisabled(True) 
         
         self.step_executor=GUI_Step_Executor()
         self.step_executor.error_signal.connect(self._feedback_receive)
@@ -273,6 +276,7 @@ class ExperimentGUI(Plugin):
         self._welcomescreen.statusFormLayout.addWidget(self.forcetorqueled,2,0)
         self._welcomescreen.statusFormLayout.addWidget(self.overheadcameraled,4,0)
         self._welcomescreen.statusFormLayout.addWidget(self.grippercameraled,6,0)
+        self._runscreen.connectionLayout.addWidget(self.runscreenstatusled,0,1)
         #self._welcomescreen.robotConnectionWidget.addWidget(self.led)
         #consoleThread.finished.connect(app.exit)
 
@@ -311,6 +315,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.previousPlan.pressed.connect(self._previousPlan)
         self._runscreen.resetToHome.pressed.connect(self._reset_position)
         self._runscreen.stopPlan.pressed.connect(self._stopPlan)
+        self._runscreen.accessTeleop.pressed.connect(self.change_teleop_modes)
         #self._errordiagnosticscreen.openOverheadCameraView.pressed.connect(self._open_overhead_camera_view)
         #self._errordiagnosticscreen.openGripperCameraViews.pressed.connect(self._open_gripper_camera_views)
         self._errordiagnosticscreen.openForceTorqueDataPlot.pressed.connect(self._open_force_torque_data_plot)
@@ -453,6 +458,7 @@ class ExperimentGUI(Plugin):
         subprocess.call(["xdotool", "search", "--name", "rviz", "windowraise"])
 
     def _next_plan(self):
+    #TODO: Disable previous plan if planListIndex==2 or 4
         self._runscreen.nextPlan.setDisabled(True)
         self._runscreen.previousPlan.setDisabled(True)
         self._runscreen.resetToHome.setDisabled(True)
@@ -465,7 +471,7 @@ class ExperimentGUI(Plugin):
             self.planListIndex+=1
         #g=GUIStepGoal(self.gui_execute_states[self.planListIndex], self.panel_type)
         #self.client_handle=self.client.send_goal(g,done_cb=self._process_done,feedback_cb=self._feedback_receive)
-
+        
         self.step_executor._nextPlan(self.panel_type,self.planListIndex)
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
@@ -604,10 +610,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.previousPlan.setDisabled(False)
             self._runscreen.resetToHome.setDisabled(False)
 
-    def _process_done(self,state,result):
-        self._runscreen.nextPlan.setDisabled(False)
-        self._runscreen.previousPlan.setDisabled(False)
-        self._runscreen.resetToHome.setDisabled(False)
+
 
     def process_state_set(self,data):
         #if(data.state!="moving"):
@@ -656,6 +659,35 @@ class ExperimentGUI(Plugin):
         elif(self.planListIndex==5):
             self._execute_step('plan_transport_payload',self.placement_target)
         #self.set_controller_mode(self.controller_commander.MODE_SHARED_TRAJECTORY, 1, [],[])
+        
+    def change_teleop_modes(self):
+        with self._lock:
+            self.current_teleop_mode+=1
+            rospy.loginfo("Entering teleop mode:"+self.teleop_modes[self.current_teleop_mode])
+            try:
+                if(self.current_teleop_mode==len(self.teleop_modes)):
+                    self.current_teleop_mode=0
+                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
+                    
+                elif(self.current_teleop_mode==1):
+                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_JOINT_TELEOP,1,[],[])
+                    
+                elif(self.current_teleop_mode==2):
+                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_CARTESIAN_TELEOP,1,[],[])
+                elif(self.current_teleop_mode==3):
+                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_CYLINDRICAL_TELEOP,1,[],[])
+                elif(self.current_teleop_mode==4):
+                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_SPHERICAL_TELEOP,1,[],[])
+                    
+                button_string=self.teleop_button_string+self.teleop_modes[self.current_teleop_mode]
+            except Exception as err:
+                rospy.loginfo(str(err))
+                self.step_executor.error="Controller failed to set teleop mode"
+                self.step_executor.error_signal.emit()
+                
+            
+            
+            
 
     def set_controller_mode(self,mode,speed_scalar=1.0,ft_bias=[], ft_threshold=[]):
         req=SetControllerModeRequest()
@@ -767,8 +799,10 @@ class ExperimentGUI(Plugin):
            #             self.disconnectreturnoption=True
 
                     self.led_change(self.robotconnectionled,False)
+                    self.led_change(self.runscreenstatusled,False)
                 else:
                     self.led_change(self.robotconnectionled,True)
+                    self.led_change(self.runscreenstatusled,True)
                 if(data.ft_wrench_valid=="False"):
                     self.stackedWidget.setCurrentIndex(0)
 

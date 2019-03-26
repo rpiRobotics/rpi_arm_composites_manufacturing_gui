@@ -47,7 +47,6 @@ class GUI_Step_Executor(QObject):
     def _feedback_receive(self,state,result):
         """
         emits signal when error is received from process controller
-    
         
         """
         rospy.loginfo("Feedback_receive")
@@ -55,8 +54,23 @@ class GUI_Step_Executor(QObject):
         self.error_signal.emit()
         
         self._publish_state_message()
-    #TODO: Solve duplication problem?
+    
+    #callback triggered by process_state message subscription that makes the next process action call 
     def _next_command(self,data):
+        """
+        the process controller publishes to process_state when commands are completed successfully
+        data is the published process state data it is not actually checked, the GUI instead manages its own state machine 
+        self.execute_states is a list of all the process commands in the process_controller
+        self.recover_from_pause is used as a flag to stop sending the rest of the commands in the sequence if pause is commanded
+        self.current_state is the first index for self.execute_states and is only changed by the user pressing a button
+        self.current_command is the second index for self.execute_states and is incremented in this function, this function is called until self.current_command>=len(self.execute_states) at which point the GUI step has been completed
+        self.target_index is used to signal which step should contain the target being interacted with
+        self.target is the target id of the operation
+        ProcessStepGoal is the action goal sent to the process_controller action server
+        self.client_handle is the variable used to store the current action_client_handle in case a pause is commanded
+        self._feedback_receive is the error received callback function for the action client
+        self._publish_state_message is a function called to alert the main GUI program that the GUI step has been completed, this is used to reenable the GUI command buttons
+        """
     	rospy.loginfo("Next_command")
         if(self.recover_from_pause):
             return
@@ -64,7 +78,6 @@ class GUI_Step_Executor(QObject):
         rospy.loginfo("current state %i"%self.current_state)
         rospy.loginfo("current command %i"%self.current_command)
         if(not(self.current_command>=len(self.execute_states[self.current_state]))):
-        
             
             
             if(self.current_command==self.target_index):
@@ -75,13 +88,11 @@ class GUI_Step_Executor(QObject):
             #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
             #self.client.wait_for_result()
         else:
-            rospy.loginfo("done with command")
-            rospy.loginfo(str(len(self.execute_states[self.current_state])))
-            
             self._publish_state_message()
 
     def _execute_steps(self,steps_index, target="",target_index=-1):
         #TODO Create separate thread for each execution step that waits until in_process is true
+        
         def send_action(goal):
             self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive)
             #self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive,done_cb=self._next_command)
@@ -141,7 +152,6 @@ class GUI_Step_Executor(QObject):
         time.sleep(1)
 
         if(planListIndex==0):
-            rospy.loginfo("reset_commanded")
             ret_code=-1
             try:
                 g=ProcessStepGoal(self.execute_states[0][0], "")
