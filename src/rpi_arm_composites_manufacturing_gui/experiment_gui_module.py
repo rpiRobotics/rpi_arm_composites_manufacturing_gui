@@ -462,6 +462,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.nextPlan.setDisabled(True)
         self._runscreen.previousPlan.setDisabled(True)
         self._runscreen.resetToHome.setDisabled(True)
+        self.reset_teleop_button()
         #TODO Make it change color when in motion
         if(self.planListIndex+1==self._runscreen.planList.count()):
             self.planListIndex=0
@@ -586,13 +587,14 @@ class ExperimentGUI(Plugin):
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
+        self.reset_teleop_button()
 
     def _previousPlan(self):
         if(self.planListIndex==0):
             self.planListIndex=self._runscreen.planList.count()-1
         else:
             self.planListIndex-=1
-
+        self.reset_teleop_button()
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
        # self.rewound=True
         #self._runscreen.previousPlan.setDisabled(True)
@@ -632,7 +634,7 @@ class ExperimentGUI(Plugin):
             self.planListIndex=0
             #g=GUIStepGoal("reset", self.panel_type)
             #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
-            
+            self.reset_teleop_button()
             self.step_executor._nextPlan(None,self.planListIndex)
             self._runscreen.planList.item(self.planListIndex).setSelected(True)
             #subprocess.Popen(['python', self.reset_code])
@@ -663,7 +665,7 @@ class ExperimentGUI(Plugin):
     def change_teleop_modes(self):
         with self._lock:
             self.current_teleop_mode+=1
-            rospy.loginfo("Entering teleop mode:"+self.teleop_modes[self.current_teleop_mode])
+            
             try:
                 if(self.current_teleop_mode==len(self.teleop_modes)):
                     self.current_teleop_mode=0
@@ -678,8 +680,10 @@ class ExperimentGUI(Plugin):
                     self.controller_commander.set_controller_mode(self.controller_commander.MODE_CYLINDRICAL_TELEOP,1,[],[])
                 elif(self.current_teleop_mode==4):
                     self.controller_commander.set_controller_mode(self.controller_commander.MODE_SPHERICAL_TELEOP,1,[],[])
-                    
+                rospy.loginfo("Entering teleop mode:"+self.teleop_modes[self.current_teleop_mode])
                 button_string=self.teleop_button_string+self.teleop_modes[self.current_teleop_mode]
+                self._runscreen.accessTeleop.setText(button_string)
+                
             except Exception as err:
                 rospy.loginfo(str(err))
                 self.step_executor.error="Controller failed to set teleop mode"
@@ -699,6 +703,11 @@ class ExperimentGUI(Plugin):
         if (res.error_code.mode != ControllerMode.MODE_SUCCESS): raise Exception("Could not set controller mode")
 
 
+    def reset_teleop_button(self):
+        self.current_teleop_mode=0
+        self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
+        button_string=self.teleop_button_string+self.teleop_modes[self.current_teleop_mode]
+        self._runscreen.accessTeleop.setText(button_string)
 
 
     def callback(self,data):
@@ -800,6 +809,7 @@ class ExperimentGUI(Plugin):
 
                     self.led_change(self.robotconnectionled,False)
                     self.led_change(self.runscreenstatusled,False)
+                    self.reset_teleop_button()
                 else:
                     self.led_change(self.robotconnectionled,True)
                     self.led_change(self.runscreenstatusled,True)
