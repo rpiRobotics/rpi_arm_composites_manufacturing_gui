@@ -223,7 +223,9 @@ class ExperimentGUI(Plugin):
         #Need this to pause motions
         self.process_client=actionlib.ActionClient('process_step', ProcessStepAction)
         self.process_client.wait_for_server()
+        self.placement_targets={'leeward_mid_panel':'panel_nest_leeward_mid_panel_target','leeward_tip_panel':'panel_nest_leeward_tip_panel_target'}
         self.placement_target='panel_nest_leeward_mid_panel_target'
+        
         self.panel_type='leeward_mid_panel'
         self.client_handle=None
         
@@ -352,6 +354,7 @@ class ExperimentGUI(Plugin):
                 next_selected_panel=self.messagewindow.get_panel_selected()
                 if(next_selected_panel != None):
                     self.panel_type=next_selected_panel
+                    self.placement_target=self.placement_targets[self.panel_type]
 
         self.stackedWidget.setCurrentIndex(1)
         self._runscreen.panelType.setText(self.panel_type)
@@ -473,7 +476,7 @@ class ExperimentGUI(Plugin):
         #g=GUIStepGoal(self.gui_execute_states[self.planListIndex], self.panel_type)
         #self.client_handle=self.client.send_goal(g,done_cb=self._process_done,feedback_cb=self._feedback_receive)
         
-        self.step_executor._nextPlan(self.panel_type,self.planListIndex)
+        self.step_executor._nextPlan(self.panel_type,self.planListIndex,self.placement_target)
 
         self._runscreen.planList.item(self.planListIndex).setSelected(True)
         if(self.rewound):

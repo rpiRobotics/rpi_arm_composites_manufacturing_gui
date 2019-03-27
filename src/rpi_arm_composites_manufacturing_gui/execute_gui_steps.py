@@ -24,7 +24,7 @@ class GUI_Step_Executor(QObject):
         self.rewound=False
 
         self.execute_states=[['reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
-                            ['transport_payload'],['place_panel'],['plan_place_set_second_step'],['stop_motion'],['rewind_motion']]
+                            ['plan_transport_payload','move_transport_payload'],['place_panel'],['plan_place_set_second_step'],['stop_motion'],['rewind_motion']]
         self.reset_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Reset_Start_pos_wason2.py')
         self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel1.py')
         self.YC_place_code2=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel2.py')
@@ -141,7 +141,7 @@ class GUI_Step_Executor(QObject):
         
         #TODO: using client.get_state can implemen action state recall to eliminate plan from moveit?
     #TODO: make it so that next plan throws it back into automatic mode every time and then teleop switches to teleop mode and plans the next move
-    def _nextPlan(self,panel_type,planListIndex):
+    def _nextPlan(self,panel_type,planListIndex,panel_nest=None):
 
         rospy.loginfo("next plan planListIndex: "+str(planListIndex))
 
@@ -182,23 +182,13 @@ class GUI_Step_Executor(QObject):
 
         elif(planListIndex==3):
             
-            try:
-                g=ProcessStepGoal(self.execute_states[3][0], panel_type)
-                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
-                #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
-            finally:
-                pass
-
+            self._execute_steps(3,panel_nest,0)
 
         elif(planListIndex==4):
             
-            try:
-                g=ProcessStepGoal(self.execute_states[4][0], panel_type)
-                self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
-                #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
-            finally:
-                pass
-        
+            
+            self._execute_steps(4)
+
             
 
         if(self.rewound):
