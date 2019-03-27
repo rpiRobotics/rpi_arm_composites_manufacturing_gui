@@ -40,23 +40,24 @@ class GUI_Step_Executor(QObject):
         self.target=None
         self.error=None
         self.gui_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
-        rospy.Subscriber("process_state",ProcessState,self._next_command)
+        #rospy.Subscriber("process_state",ProcessState,self._next_command)
         
         
     #Receives error messages from process controller action calls and signals gui to put up alert
-    def _feedback_receive(self,state,result):
+    def _feedback_receive(self,status,result):
         """
         emits signal when error is received from process controller
         
         """
-        rospy.loginfo("Feedback_receive")
+        rospy.loginfo("Feedback_receive_function")
         self.error=result.error_msg
         self.error_signal.emit()
         
         self._publish_state_message()
     
     #callback triggered by process_state message subscription that makes the next process action call 
-    def _next_command(self,data):
+    #def _next_command(self,data):
+    def _next_command(self,status,result):
         """
         the process controller publishes to process_state when commands are completed successfully
         data is the published process state data it is not actually checked, the GUI instead manages its own state machine 
@@ -71,31 +72,41 @@ class GUI_Step_Executor(QObject):
         self._feedback_receive is the error received callback function for the action client
         self._publish_state_message is a function called to alert the main GUI program that the GUI step has been completed, this is used to reenable the GUI command buttons
         """
-    	rospy.loginfo("Next_command")
-        if(self.recover_from_pause):
-            return
-        self.current_command+=1
-        rospy.loginfo("current state %i"%self.current_state)
-        rospy.loginfo("current command %i"%self.current_command)
-        if(not(self.current_command>=len(self.execute_states[self.current_state]))):
+        if(status==actionlib.GoalStatus.SUCCEEDED):
             
-            
-            if(self.current_command==self.target_index):
-                g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], self.target)
+        	rospy.loginfo("Next_command")
+            if(self.recover_from_pause):
+                return
+            self.current_command+=1
+            rospy.loginfo("current state %i"%self.current_state)
+            rospy.loginfo("current command %i"%self.current_command)
+            if(not(self.current_command>=len(self.execute_states[self.current_state]))):
+                
+                
+                if(self.current_command==self.target_index):
+                    g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], self.target)
+                else:
+                    g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], "")
+                #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+                #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+                self.client_handle=self.client.send_goal(g,done_cb=self._next_command)
+                #self.client.wait_for_result()
             else:
-                g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], "")
-            self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
-            #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
-            #self.client.wait_for_result()
+                self._publish_state_message()
         else:
+            rospy.loginfo("Feedback_receive")
+            self.error=result.error_msg
+            self.error_signal.emit()
+        
             self._publish_state_message()
 
     def _execute_steps(self,steps_index, target="",target_index=-1):
         #TODO Create separate thread for each execution step that waits until in_process is true
         #TODO try with done cb
         def send_action(goal):
-            self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive)
+            #self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive)
             #self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive,done_cb=self._next_command)
+            self.client_handle=self.client.send_goal(g,done_cb=self._next_command)
             #self.client.wait_for_result()
             
         self.start_step=0
