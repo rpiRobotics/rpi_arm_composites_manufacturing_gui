@@ -29,7 +29,7 @@ class GUI_Step_Executor(QObject):
         self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel1.py')
         self.YC_place_code2=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel2.py')
         self.YC_transport_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'test_moveit_commander_custom_trajectory_YC_TransportPath_Panels.py')
-        self.client=actionlib.ActionClient('process_step', ProcessStepAction)
+        self.client=actionlib.SimpleActionClient('process_step', ProcessStepAction)
         self.client.wait_for_server()
         self.client_handle=None
         self.start_step=0
@@ -74,7 +74,7 @@ class GUI_Step_Executor(QObject):
         """
         if(status==actionlib.GoalStatus.SUCCEEDED):
             
-        	rospy.loginfo("Next_command")
+    	    rospy.loginfo("Next_command")
             if(self.recover_from_pause):
                 return
             self.current_command+=1
@@ -198,7 +198,7 @@ class GUI_Step_Executor(QObject):
         elif(planListIndex==4):
             
             
-            self._execute_steps(4)
+            self._execute_steps(4,panel_type,0)
 
             
 
