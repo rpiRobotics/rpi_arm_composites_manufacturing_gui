@@ -321,6 +321,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.resetToHome.pressed.connect(self._reset_position)
         self._runscreen.stopPlan.pressed.connect(self._stopPlan)
         self._runscreen.accessTeleop.pressed.connect(self.change_teleop_modes)
+        self._runscreen.sharedControl.stateChanged.connect(self.start_shared_control)
         #self._errordiagnosticscreen.openOverheadCameraView.pressed.connect(self._open_overhead_camera_view)
         #self._errordiagnosticscreen.openGripperCameraViews.pressed.connect(self._open_gripper_camera_views)
         self._errordiagnosticscreen.openForceTorqueDataPlot.pressed.connect(self._open_force_torque_data_plot)
@@ -593,6 +594,7 @@ class ExperimentGUI(Plugin):
         
         #g=GUIStepGoal("stop_plan", self.panel_type)
         #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+        self._runscreen.sharedControl.setChecked(False)
         if(self.planListIndex!=0):
             self._runscreen.planList.item(self.planListIndex-1).setSelected(False)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
@@ -682,25 +684,11 @@ class ExperimentGUI(Plugin):
             rospy.loginfo("Reset Rejected")   
 
     def start_shared_control(self):
-        if(self.planListIndex+1==self._runscreen.planList.count()):
-            self.planListIndex=0
-        elif self.recover_from_pause:
-            self.recover_from_pause=False
+        self.shared_control_enabled=self._runscreen.sharedControl.isChecked()
+        if(self.shared_control_enabled):
+            self.step_executor.controller_mode=ControllerMode.MODE_SHARED_TRAJECTORY
         else:
-            self.planListIndex+=1
-
-        if(self.planListIndex==1):
-            self._execute_step('plan_pickup_prepare',self.panel_type)
-        elif(self.planListIndex==2):
-            self._execute_step('plan_pickup_lower')
-        elif(self.planListIndex==3):
-            self._execute_step('plan_pickup_grab_first_step')
-            #TODO: How to handle what happens after threshold exceeded to generate next plan step
-        elif(self.planListIndex==4):
-            self._execute_step('plan_pickup_raise')
-        elif(self.planListIndex==5):
-            self._execute_step('plan_transport_payload',self.placement_target)
-        #self.set_controller_mode(self.controller_commander.MODE_SHARED_TRAJECTORY, 1, [],[])
+            self.step_executor.controller_mode=ControllerMode.MODE_AUTO_TRAJECTORY
         
     def change_teleop_modes(self):
         with self._lock:
