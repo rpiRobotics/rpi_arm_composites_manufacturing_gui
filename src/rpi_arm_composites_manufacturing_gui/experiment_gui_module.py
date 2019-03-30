@@ -250,7 +250,7 @@ class ExperimentGUI(Plugin):
         self.runscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreen.ui')
         self.errorscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'errordiagnosticscreen.ui')
         self.rewound=False
-
+        self.pre_reset_list_index=0
         # Extend the widget with all attributes and children from UI file
         loadUi(self.welcomescreenui, self._welcomescreen)
         loadUi(self.runscreenui, self._runscreen)
@@ -267,7 +267,7 @@ class ExperimentGUI(Plugin):
 
         context.add_widget(self._mainwidget)
         self.context=context
-
+        
         self.plugin_settings=None
         self.instance_settings=None
         #self._errordiagnosticscreen.consoleWidget=console_widget.ConsoleWidget(self._proxy_model,self._rospack)
@@ -288,14 +288,17 @@ class ExperimentGUI(Plugin):
         # Add widget to the user interface
         #context.add_widget(console)==QDialog.Accepted
             #context.add_widget(rqt_console)
-
+        self._runscreen.planList.setSelectionMode(QAbstractItemView.ExtendedSelection)
         for entry in self.plans:
             listentry=QListWidgetItem(entry)
             listentry.setFlags(Qt.ItemIsSelectable)
             self._runscreen.planList.addItem(listentry)
 
-        self._runscreen.planList.item(0).setSelected(True)
+        #self._runscreen.planList.item(0).setSelected(True)
+        self.shared_control_enabled=False
         self.planListIndex=0
+        self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+        self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
         self._runscreen.panelType.setText(self.panel_type)
         self._runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
 
@@ -467,6 +470,9 @@ class ExperimentGUI(Plugin):
         self._runscreen.resetToHome.setDisabled(True)
         self.reset_teleop_button()
         #TODO Make it change color when in motion
+        
+        self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+        self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
         if(self.planListIndex+1==self._runscreen.planList.count()):
             self.planListIndex=0
         elif(self.recover_from_pause):
@@ -477,8 +483,10 @@ class ExperimentGUI(Plugin):
         #self.client_handle=self.client.send_goal(g,done_cb=self._process_done,feedback_cb=self._feedback_receive)
         
         self.step_executor._nextPlan(self.panel_type,self.planListIndex,self.placement_target)
-
-        self._runscreen.planList.item(self.planListIndex).setSelected(True)
+        
+        #self._runscreen.planList.item(self.planListIndex).setSelected(True)
+        self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+        self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
         if(self.rewound):
             self.rewound=False
             self._runscreen.previousPlan.setDisabled(False)
@@ -585,11 +593,15 @@ class ExperimentGUI(Plugin):
         
         #g=GUIStepGoal("stop_plan", self.panel_type)
         #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+        if(self.planListIndex!=0):
+            self._runscreen.planList.item(self.planListIndex-1).setSelected(False)
+        self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
         self.step_executor._stopPlan()
         self.recover_from_pause=True
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
+        
         self.reset_teleop_button()
 
     def _previousPlan(self):
@@ -614,11 +626,32 @@ class ExperimentGUI(Plugin):
             self._runscreen.nextPlan.setDisabled(False)
             self._runscreen.previousPlan.setDisabled(False)
             self._runscreen.resetToHome.setDisabled(False)
+            if(self.planListIndex!=0):
+                #self._runscreen.planList.item(self.planListIndex-1).setSelected(False)
+                self._runscreen.planList.item(self.planListIndex-1).setForeground(Qt.darkGray)
+                self._runscreen.planList.item(self.planListIndex-1).setBackground(Qt.white)
+            else:
+                #self._runscreen.planList.item(self.pre_reset_list_index).setSelected(False)
+                self._runscreen.planList.item(self.pre_reset_list_index).setForeground(Qt.darkGray)
+                self._runscreen.planList.item(self.pre_reset_list_index).setBackground(Qt.white)
+            self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+            self._runscreen.planList.item(self.planListIndex).setBackground(Qt.yellow)
 
 
 
     def process_state_set(self,data):
         #if(data.state!="moving"):
+        if(self.planListIndex!=0):
+            #self._runscreen.planList.item(self.planListIndex-1).setSelected(False)
+            self._runscreen.planList.item(self.planListIndex-1).setForeground(Qt.darkGray)
+            self._runscreen.planList.item(self.planListIndex-1).setBackground(Qt.white)
+        else:
+            #self._runscreen.planList.item(self.pre_reset_list_index).setSelected(False)
+            self._runscreen.planList.item(self.pre_reset_list_index).setForeground(Qt.darkGray)
+            self._runscreen.planList.item(self.pre_reset_list_index).setBackground(Qt.white)
+        self._runscreen.planList.item(self.planListIndex).setForeground(Qt.green)
+        self._runscreen.planList.item(self.planListIndex).setBackground(Qt.white)
+        
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
@@ -633,13 +666,17 @@ class ExperimentGUI(Plugin):
         reply = QMessageBox.question(messagewindow, 'Path Verification',
                      'Proceed to Reset Position', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply==QMessageBox.Yes:
-
+            self.pre_reset_list_index=self.planListIndex
+            self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+            self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
             self.planListIndex=0
             #g=GUIStepGoal("reset", self.panel_type)
             #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
             self.reset_teleop_button()
             self.step_executor._nextPlan(None,self.planListIndex)
-            self._runscreen.planList.item(self.planListIndex).setSelected(True)
+            #self._runscreen.planList.item(self.planListIndex).setSelected(True)
+            self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+            self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
             #subprocess.Popen(['python', self.reset_code])
         else:
             rospy.loginfo("Reset Rejected")   
@@ -708,7 +745,7 @@ class ExperimentGUI(Plugin):
 
     def error_recovery_button(self):
         self.current_teleop_mode=0
-        self._runscreen.accessTeleop.setText("Recover from Error")
+        
 
     def reset_teleop_button(self):
         self.current_teleop_mode=1
@@ -817,6 +854,7 @@ class ExperimentGUI(Plugin):
                     self.led_change(self.robotconnectionled,False)
                     self.led_change(self.runscreenstatusled,False)
                     self.error_recovery_button()
+                    self._runscreen.accessTeleop.setText("Recover from Error Code:"+str(data.mode.mode))
                 else:
                     self.led_change(self.robotconnectionled,True)
                     self.led_change(self.runscreenstatusled,True)
