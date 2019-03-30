@@ -212,7 +212,7 @@ class GUI_Step_Executor(QObject):
     def _previousPlan(self):
         try:
             g=ProcessStepGoal(self.execute_states[7][0], "", ControllerMode(self.controller_mode))
-            self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+            self.client_handle=self.client.send_goal(g,done_cb=self._next_command)
             #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
         finally:
             pass

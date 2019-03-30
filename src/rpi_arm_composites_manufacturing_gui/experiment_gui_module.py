@@ -20,6 +20,7 @@ from rpi_arm_composites_manufacturing_gui.msg import GUIStepAction, GUIStepGoal
 
 
 from safe_kinematic_controller.msg import ControllerState as controllerstate
+from safe_kinematic_controller.msg import ControllerMode
 from safe_kinematic_controller.srv import SetControllerMode, SetControllerModeRequest
 from rpi_arm_composites_manufacturing_process.msg import ProcessStepAction, ProcessStepGoal, ProcessState, ProcessStepFeedback
 import actionlib
@@ -34,6 +35,7 @@ from user_authentication_window import UserAuthenticationWindow
 #TODO Integrate pyqtgraph into automatic package download
 import pyqtgraph as pg
 import threading
+
 '''
 freeBytes=QSemaphore(100)
 usedBytes=QSemaphore()
@@ -168,7 +170,7 @@ class ExperimentGUI(Plugin):
         self.setObjectName('MyPlugin')
         self._lock=threading.Lock()
         #self._send_event=threading.Event()
-        self.controller_commander=controller_commander_pkg.ControllerCommander()
+        #elf.controller_commander=controller_commander_pkg.ControllerCommander()
         # Process standalone plugin command-line arguments
         from argparse import ArgumentParser
         parser = ArgumentParser()
@@ -348,8 +350,18 @@ class ExperimentGUI(Plugin):
     def _to_welcome_screen(self):
         self.stackedWidget.setCurrentIndex(0)
 
+
+    def _set_controller_mode_dispatch(self,mode,speed,bias,threshold):
+        req=SetControllerModeRequest(mode,speed,bias,threshold)
+        res=self._set_controller_mode(req)
+        if(res.error_code!=ControllerMode.MODE_SUCCESS):
+            self.step_executor.error="GUI failed to set controller mode"
+            self.step_executor.error_signal.emit()
+            
+
     def _to_run_screen(self):
-        self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
+        #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
+        self.set_controller_mode(ControllerMode.MODE_HALT,1,[],[])
         if(self.stackedWidget.currentIndex()==0):
             self.messagewindow=PanelSelectorWindow()
             self.messagewindow.show()
@@ -691,32 +703,36 @@ class ExperimentGUI(Plugin):
             self.step_executor.controller_mode=ControllerMode.MODE_AUTO_TRAJECTORY
         
     def change_teleop_modes(self):
-        with self._lock:
-            self.current_teleop_mode+=1
+        #with self._lock:
+        self.current_teleop_mode+=1
+        
+        try:
+            if(self.current_teleop_mode==len(self.teleop_modes)):
+                self.current_teleop_mode=1
+                self.set_controller_mode(ControllerMode.MODE_HALT,1,[],[])
+                #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
+            elif(self.current_teleop_mode==1):
+                self.reset_teleop_button()
+            elif(self.current_teleop_mode==2):
+                #self.controller_commander.set_controller_mode(self.controller_commander.MODE_JOINT_TELEOP,1,[],[])
+                self.set_controller_mode(ControllerMode.MODE_JOINT_TELEOP,1,[],[])
+            elif(self.current_teleop_mode==3):
+                self.set_controller_mode(ControllerMode.MODE_CARTESIAN_TELEOP,1,[],[])
+                #self.controller_commander.set_controller_mode(self.controller_commander.MODE_CARTESIAN_TELEOP,1,[],[])
+            elif(self.current_teleop_mode==4):
+                self.set_controller_mode(ControllerMode.MODE_CYLINDRICAL_TELEOP,1,[],[])
+                #self.controller_commander.set_controller_mode(self.controller_commander.MODE_CYLINDRICAL_TELEOP,1,[],[])
+            elif(self.current_teleop_mode==5):
+                self.set_controller_mode(ControllerMode.MODE_SPHERICAL_TELEOP,1,[],[])
+                #self.controller_commander.set_controller_mode(self.controller_commander.MODE_SPHERICAL_TELEOP,1,[],[])
+            rospy.loginfo("Entering teleop mode:"+self.teleop_modes[self.current_teleop_mode])
+            button_string=self.teleop_button_string+self.teleop_modes[self.current_teleop_mode]
+            self._runscreen.accessTeleop.setText(button_string)
             
-            try:
-                if(self.current_teleop_mode==len(self.teleop_modes)):
-                    self.current_teleop_mode=1
-                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
-                elif(self.current_teleop_mode==1):
-                    self.reset_teleop_button()
-                elif(self.current_teleop_mode==2):
-                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_JOINT_TELEOP,1,[],[])
-                    
-                elif(self.current_teleop_mode==3):
-                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_CARTESIAN_TELEOP,1,[],[])
-                elif(self.current_teleop_mode==4):
-                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_CYLINDRICAL_TELEOP,1,[],[])
-                elif(self.current_teleop_mode==5):
-                    self.controller_commander.set_controller_mode(self.controller_commander.MODE_SPHERICAL_TELEOP,1,[],[])
-                rospy.loginfo("Entering teleop mode:"+self.teleop_modes[self.current_teleop_mode])
-                button_string=self.teleop_button_string+self.teleop_modes[self.current_teleop_mode]
-                self._runscreen.accessTeleop.setText(button_string)
-                
-            except Exception as err:
-                rospy.loginfo(str(err))
-                self.step_executor.error="Controller failed to set teleop mode"
-                self.step_executor.error_signal.emit()
+        except Exception as err:
+            rospy.loginfo(str(err))
+            self.step_executor.error="Controller failed to set teleop mode"
+            self.step_executor.error_signal.emit()
                 
             
             
@@ -729,7 +745,9 @@ class ExperimentGUI(Plugin):
         req.ft_bias=ft_bias
         req.ft_stop_threshold=ft_threshold
         res=self._set_controller_mode(req)
-        if (res.error_code.mode != ControllerMode.MODE_SUCCESS): raise Exception("Could not set controller mode")
+        if (res.error_code.mode != ControllerMode.MODE_SUCCESS): 
+            self.step_executor.error="GUI failed to set controller mode"
+            self.step_executor.error_signal.emit()
 
     def error_recovery_button(self):
         self.current_teleop_mode=0
@@ -737,7 +755,8 @@ class ExperimentGUI(Plugin):
 
     def reset_teleop_button(self):
         self.current_teleop_mode=1
-        self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
+        self.set_controller_mode(ControllerMode.MODE_HALT,1,[],[])
+        #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
         button_string=self.teleop_button_string+self.teleop_modes[self.current_teleop_mode]
         self._runscreen.accessTeleop.setText(button_string)
 
