@@ -487,6 +487,9 @@ Control</string>
      </item>
     </layout>
    </item>
+   <item>
+    <widget class="QLineEdit" name="readout"/>
+   </item>
   </layout>
  </widget>
  <resources/>
