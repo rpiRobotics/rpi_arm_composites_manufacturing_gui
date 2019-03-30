@@ -11,6 +11,7 @@ from python_qt_binding.QtWidgets import QWidget, QDialog
 import actionlib
 from rpi_arm_composites_manufacturing_process.msg import ProcessStepAction, ProcessStepGoal, ProcessState
 import threading
+from safe_kinematic_controller.msg import ControllerMode
 
 
 class GUI_Step_Executor(QObject):
@@ -40,6 +41,7 @@ class GUI_Step_Executor(QObject):
         self.target=None
         self.error=None
         self.gui_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
+        self.controller_mode = ControllerMode.MODE_AUTO_TRAJECTORY
         #rospy.Subscriber("process_state",ProcessState,self._next_command)
         
         
@@ -84,9 +86,9 @@ class GUI_Step_Executor(QObject):
                 
                 
                 if(self.current_command==self.target_index):
-                    g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], self.target)
+                    g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], self.target, ControllerMode(self.controller_mode))
                 else:
-                    g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], "")
+                    g=ProcessStepGoal(self.execute_states[self.current_state][self.current_command], "", ControllerMode(self.controller_mode))
                 #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
                 #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
                 self.client_handle=self.client.send_goal(g,done_cb=self._next_command)
@@ -127,9 +129,9 @@ class GUI_Step_Executor(QObject):
 
         self.current_command=self.start_step
         if(self.start_step==target_index):
-            g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], target)
+            g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], target, ControllerMode(self.controller_mode))
         else:
-            g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], "")
+            g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], "", ControllerMode(self.controller_mode))
             	
         	
 		
@@ -209,7 +211,7 @@ class GUI_Step_Executor(QObject):
 
     def _previousPlan(self):
         try:
-            g=ProcessStepGoal(self.execute_states[7][0], "")
+            g=ProcessStepGoal(self.execute_states[7][0], "", ControllerMode(self.controller_mode))
             self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
             #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
         finally:
