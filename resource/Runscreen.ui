@@ -198,7 +198,7 @@ Off</string>
         </spacer>
        </item>
        <item>
-        <widget class="QPushButton" name="sharedControl">
+        <widget class="QCheckBox" name="sharedControl">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -209,6 +209,9 @@ Off</string>
           <font>
            <pointsize>20</pointsize>
           </font>
+         </property>
+         <property name="layoutDirection">
+          <enum>Qt::RightToLeft</enum>
          </property>
          <property name="text">
           <string>Shared
