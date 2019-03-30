@@ -820,6 +820,8 @@ class ExperimentGUI(Plugin):
                 else:
                     self.led_change(self.robotconnectionled,True)
                     self.led_change(self.runscreenstatusled,True)
+                    
+                    self._runscreen.reading.setText(str(data.ft_wrench))
                 if(data.ft_wrench_valid=="False"):
                     self.stackedWidget.setCurrentIndex(0)
 
