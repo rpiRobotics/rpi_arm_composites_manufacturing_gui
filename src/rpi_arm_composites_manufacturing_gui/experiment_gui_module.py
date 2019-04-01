@@ -611,7 +611,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.planList.item(self.planListIndex-1).setBackground(Qt.white)
             self._runscreen.planList.item(self.planListIndex-1).setForeground(Qt.darkGray)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
-        self._runscreeen.planList.repaint()
+        self._runscreen.planList.repaint()
         self.step_executor._stopPlan()
         self.recover_from_pause=True
         self._runscreen.nextPlan.setDisabled(False)
@@ -630,7 +630,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.gray)
         
-        self._runscreeen.planList.repaint()
+        self._runscreen.planList.repaint()
        # self.rewound=True
         #self._runscreen.previousPlan.setDisabled(True)
         #g=GUIStepGoal("previous_plan", self.panel_type)
@@ -656,7 +656,7 @@ class ExperimentGUI(Plugin):
                 self._runscreen.planList.item(self.pre_reset_list_index).setBackground(Qt.white)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.yellow)
-            self._runscreeen.planList.repaint()
+            self._runscreen.planList.repaint()
 
 
 
@@ -672,7 +672,9 @@ class ExperimentGUI(Plugin):
             self._runscreen.planList.item(self.pre_reset_list_index).setBackground(Qt.white)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.green)
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.white)
-        self._runscreeen.planList.repaint()
+        self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        self._runscreen.planList.show()
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
@@ -701,7 +703,7 @@ class ExperimentGUI(Plugin):
             #self._runscreen.planList.item(self.planListIndex).setSelected(True)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-            self._runscreeen.planList.repaint()
+            self._runscreen.planList.repaint()
             #subprocess.Popen(['python', self.reset_code])
         else:
             rospy.loginfo("Reset Rejected")   
