@@ -154,7 +154,8 @@ class RQTPlotWindow(QMainWindow):
 
 
 class ExperimentGUI(Plugin):
-
+    repaint_signal= pyqtSignal()
+    
     def __init__(self, context):
         super(ExperimentGUI, self).__init__(context)
         # Give QObjects reasonable names
@@ -221,6 +222,7 @@ class ExperimentGUI(Plugin):
         
         self.step_executor=GUI_Step_Executor()
         self.step_executor.error_signal.connect(self._feedback_receive)
+        self.repaint_signal.connect(self._repaint)
         #self.step_executor.error_function=self._feedback_receive
         #Need this to pause motions
         self.process_client=actionlib.ActionClient('process_step', ProcessStepAction)
@@ -672,8 +674,9 @@ class ExperimentGUI(Plugin):
             self._runscreen.planList.item(self.pre_reset_list_index).setBackground(Qt.white)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.green)
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.white)
-        self._runscreen.planList.item(self.planListIndex).setHidden(True)
-        self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        self.repaint_signal.emit()
         self._runscreen.planList.show()
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
@@ -928,7 +931,8 @@ class ExperimentGUI(Plugin):
             #	for x in self._data_array:
             #		self._widget.State_info.append(x)
 
-
+    def _repaint(self):
+        self._runscreen.repaint()
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
