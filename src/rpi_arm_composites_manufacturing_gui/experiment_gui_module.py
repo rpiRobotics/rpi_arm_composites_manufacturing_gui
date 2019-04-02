@@ -613,8 +613,11 @@ class ExperimentGUI(Plugin):
         if(self.planListIndex!=0):
             self._runscreen.planList.item(self.planListIndex-1).setBackground(Qt.white)
             self._runscreen.planList.item(self.planListIndex-1).setForeground(Qt.darkGray)
+            self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        self._runscreen.planList.item(self.planListIndex).setHidden(False)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
-        self._runscreen.planList.repaint()
+        self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        self._runscreen.planList.item(self.planListIndex).setHidden(False)
         self.step_executor._stopPlan()
         self.recover_from_pause=True
         self._runscreen.nextPlan.setDisabled(False)
@@ -659,7 +662,8 @@ class ExperimentGUI(Plugin):
                 self._runscreen.planList.item(self.pre_reset_list_index).setBackground(Qt.white)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.yellow)
-            self._runscreen.planList.repaint()
+            self._runscreen.planList.item(self.planListIndex).setHidden(True)
+            self._runscreen.planList.item(self.planListIndex).setHidden(False)
 
 
 
@@ -669,15 +673,17 @@ class ExperimentGUI(Plugin):
             #self._runscreen.planList.item(self.planListIndex-1).setSelected(False)
             self._runscreen.planList.item(self.planListIndex-1).setForeground(Qt.darkGray)
             self._runscreen.planList.item(self.planListIndex-1).setBackground(Qt.white)
+            self._runscreen.planList.item(self.planListIndex).setHidden(True)
+            self._runscreen.planList.item(self.planListIndex).setHidden(False)
         else:
             #self._runscreen.planList.item(self.pre_reset_list_index).setSelected(False)
             self._runscreen.planList.item(self.pre_reset_list_index).setForeground(Qt.darkGray)
             self._runscreen.planList.item(self.pre_reset_list_index).setBackground(Qt.white)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.green)
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.white)
-        #self._runscreen.planList.item(self.planListIndex).setHidden(True)
-        #self._runscreen.planList.item(self.planListIndex).setHidden(False)
-        self.repaint_signal.emit()
+        self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        #self.repaint_signal.emit()
         
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
@@ -699,6 +705,8 @@ class ExperimentGUI(Plugin):
             self._runscreen.resetToHome.setDisabled(True)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
+            self._runscreen.planList.item(self.planListIndex).setHidden(True)
+            self._runscreen.planList.item(self.planListIndex).setHidden(False)
             self.planListIndex=0
             #g=GUIStepGoal("reset", self.panel_type)
             #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
@@ -707,7 +715,8 @@ class ExperimentGUI(Plugin):
             #self._runscreen.planList.item(self.planListIndex).setSelected(True)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-            self._runscreen.planList.repaint()
+            self._runscreen.planList.item(self.planListIndex).setHidden(True)
+            self._runscreen.planList.item(self.planListIndex).setHidden(False)
             #subprocess.Popen(['python', self.reset_code])
         else:
             rospy.loginfo("Reset Rejected")   
@@ -717,12 +726,14 @@ class ExperimentGUI(Plugin):
         if(self.shared_control_enabled):
             self.step_executor.controller_mode=ControllerMode.MODE_SHARED_TRAJECTORY
             self._runscreen.sharedControl.setStyleSheet('QPushButton {background-color: orange; color: white;}')
+            '''
             button = QtGui.QPushButton()
             palette = self.button.palette()
             role = self.button.backgroundRole() #choose whatever you like
             palette.setColor(role, QColor('red'))
             button.setPalette(palette)
             self.button.setAutoFillBackground(True)
+            '''
         else:
             self.step_executor.controller_mode=ControllerMode.MODE_AUTO_TRAJECTORY
             self._runscreen.sharedControl.setStyleSheet('QPushButton {background-color: white; color: black;}')
@@ -941,7 +952,7 @@ class ExperimentGUI(Plugin):
             #		self._widget.State_info.append(x)
 
     def _repaint(self):
-        self._runscreen.repaint()
+        self._runscreen.planList.repaint()
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
