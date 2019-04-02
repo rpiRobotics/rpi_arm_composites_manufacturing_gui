@@ -325,7 +325,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.resetToHome.pressed.connect(self._reset_position)
         self._runscreen.stopPlan.pressed.connect(self._stopPlan)
         self._runscreen.accessTeleop.pressed.connect(self.change_teleop_modes)
-        self._runscreen.sharedControl.stateChanged.connect(self.start_shared_control)
+        self._runscreen.sharedControl.pressed.connect(self.start_shared_control)
         #self._errordiagnosticscreen.openOverheadCameraView.pressed.connect(self._open_overhead_camera_view)
         #self._errordiagnosticscreen.openGripperCameraViews.pressed.connect(self._open_gripper_camera_views)
         self._errordiagnosticscreen.openForceTorqueDataPlot.pressed.connect(self._open_force_torque_data_plot)
@@ -608,7 +608,8 @@ class ExperimentGUI(Plugin):
         
         #g=GUIStepGoal("stop_plan", self.panel_type)
         #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
-        self._runscreen.sharedControl.setChecked(False)
+        if(self.shared_control_enabled):
+            self.start_shared_control()
         if(self.planListIndex!=0):
             self._runscreen.planList.item(self.planListIndex-1).setBackground(Qt.white)
             self._runscreen.planList.item(self.planListIndex-1).setForeground(Qt.darkGray)
@@ -677,7 +678,7 @@ class ExperimentGUI(Plugin):
         #self._runscreen.planList.item(self.planListIndex).setHidden(True)
         #self._runscreen.planList.item(self.planListIndex).setHidden(False)
         self.repaint_signal.emit()
-        self._runscreen.planList.show()
+        
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
@@ -712,11 +713,19 @@ class ExperimentGUI(Plugin):
             rospy.loginfo("Reset Rejected")   
 
     def start_shared_control(self):
-        self.shared_control_enabled=self._runscreen.sharedControl.isChecked()
+        self.shared_control_enabled=not(self.shared_control_enabled)
         if(self.shared_control_enabled):
             self.step_executor.controller_mode=ControllerMode.MODE_SHARED_TRAJECTORY
+            self._runscreen.sharedControl.setStyleSheet('QPushButton {background-color: orange; color: white;}')
+            button = QtGui.QPushButton()
+            palette = self.button.palette()
+            role = self.button.backgroundRole() #choose whatever you like
+            palette.setColor(role, QColor('red'))
+            button.setPalette(palette)
+            self.button.setAutoFillBackground(True)
         else:
             self.step_executor.controller_mode=ControllerMode.MODE_AUTO_TRAJECTORY
+            self._runscreen.sharedControl.setStyleSheet('QPushButton {background-color: white; color: black;}')
         
     def change_teleop_modes(self):
         #with self._lock:
@@ -877,7 +886,7 @@ class ExperimentGUI(Plugin):
                     self.led_change(self.robotconnectionled,False)
                     self.led_change(self.runscreenstatusled,False)
                     self.error_recovery_button()
-                    self._runscreen.accessTeleop.setText("Recover from Error Code:"+str(data.mode.mode))
+                    self._runscreen.accessTeleop.setText("Recover from\n Error Code:"+str(data.mode.mode))
                 else:
                     self.led_change(self.robotconnectionled,True)
                     self.led_change(self.runscreenstatusled,True)
