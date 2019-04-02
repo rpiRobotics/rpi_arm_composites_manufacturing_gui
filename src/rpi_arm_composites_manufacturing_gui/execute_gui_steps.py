@@ -25,7 +25,7 @@ class GUI_Step_Executor(QObject):
         self.rewound=False
 
         self.execute_states=[['plan_reset_position','move_reset_position'],['plan_pickup_prepare','move_pickup_prepare'],['plan_pickup_lower','move_pickup_lower','plan_pickup_grab_first_step','move_pickup_grab_first_step','plan_pickup_grab_second_step','move_pickup_grab_second_step','plan_pickup_raise','move_pickup_raise'],
-                            ['plan_transport_payload','move_transport_payload'],['place_panel','plan_gripper_release','move_gripper_release'],['plan_place_set_second_step'],['stop_motion'],['rewind_motion']]
+                            ['plan_transport_payload','move_transport_payload'],['place_panel','plan_gripper_release','move_gripper_release'],['plan_place_set_second_step'],['stop_motion'],['plan_rewind_motion','move_rewind_motion']]
         self.reset_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Reset_Start_pos_wason2.py')
         self.YC_place_code=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel1.py')
         self.YC_place_code2=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'Vision_MoveIt_new_Cam_WL_Jcam2_DJ_01172019_Panel2.py')
@@ -211,8 +211,9 @@ class GUI_Step_Executor(QObject):
 
     def _previousPlan(self):
         try:
-            g=ProcessStepGoal(self.execute_states[7][0], "", ControllerMode(self.controller_mode))
-            self.client_handle=self.client.send_goal(g,done_cb=self._next_command)
+            self._execute_steps(7)
+            #g=ProcessStepGoal(self.execute_states[7][0], "", ControllerMode(self.controller_mode))
+            #self.client_handle=self.client.send_goal(g,done_cb=self._next_command)
             #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._next_command)
         finally:
             pass
