@@ -342,7 +342,9 @@ class ExperimentGUI(Plugin):
         ## which is the central class of RViz.
         #self._runscreen.widget.frame.initialize()
         #self.manager = self._runscreen.widget.frame.getManager()
-
+        #TODO eliminate this button
+        self.skipping=False
+        self._runscreen.skipCommands.pressed.connect(self.skipping)
 
 #        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_advanced_options)
 
@@ -480,31 +482,39 @@ class ExperimentGUI(Plugin):
 
     def _next_plan(self):
     #TODO: Disable previous plan if planListIndex==2 or 4
-        self._runscreen.nextPlan.setDisabled(True)
-        self._runscreen.previousPlan.setDisabled(True)
-        self._runscreen.resetToHome.setDisabled(True)
-        self.reset_teleop_button()
-        #TODO Make it change color when in motion
-        
-        self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
-        self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-        if(self.planListIndex+1==self._runscreen.planList.count()):
-            self.planListIndex=0
-        elif(self.recover_from_pause):
-            self.recover_from_pause=False
+        if(not(skipping)):
+            self._runscreen.nextPlan.setDisabled(True)
+            self._runscreen.previousPlan.setDisabled(True)
+            self._runscreen.resetToHome.setDisabled(True)
+            self.reset_teleop_button()
+            #TODO Make it change color when in motion
+            
+            self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+            self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
+            if(self.planListIndex+1==self._runscreen.planList.count()):
+                self.planListIndex=0
+            elif(self.recover_from_pause):
+                self.recover_from_pause=False
+            else:
+                self.planListIndex+=1
+            #g=GUIStepGoal(self.gui_execute_states[self.planListIndex], self.panel_type)
+            #self.client_handle=self.client.send_goal(g,done_cb=self._process_done,feedback_cb=self._feedback_receive)
+            
+            self.step_executor._nextPlan(self.panel_type,self.planListIndex,self.placement_target)
+            
+            #self._runscreen.planList.item(self.planListIndex).setSelected(True)
+            self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+            self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
+            if(self.rewound):
+                self.rewound=False
+                self._runscreen.previousPlan.setDisabled(False)
         else:
+            self._runscreen.planList.item(self.planListIndex).setForeground(Qt.darkGray)
+            self._runscreen.planList.item(self.planListIndex).setBackground(Qt.white)
             self.planListIndex+=1
-        #g=GUIStepGoal(self.gui_execute_states[self.planListIndex], self.panel_type)
-        #self.client_handle=self.client.send_goal(g,done_cb=self._process_done,feedback_cb=self._feedback_receive)
-        
-        self.step_executor._nextPlan(self.panel_type,self.planListIndex,self.placement_target)
-        
-        #self._runscreen.planList.item(self.planListIndex).setSelected(True)
-        self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
-        self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-        if(self.rewound):
-            self.rewound=False
-            self._runscreen.previousPlan.setDisabled(False)
+            #self._runscreen.planList.item(self.planListIndex).setSelected(True)
+            self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+            self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
         
             """
             self._runscreen.vacuum.setText("OFF")
@@ -701,7 +711,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.resetToHome.setDisabled(False)
         
 
-
+    
 
 
 
@@ -806,6 +816,24 @@ class ExperimentGUI(Plugin):
         #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
         button_string=self.teleop_button_string+self.teleop_modes[self.current_teleop_mode]
         self._runscreen.accessTeleop.setText(button_string)
+        
+    #TODO Eliminate this command
+    def skipping(self):
+        self.skipping=not(self.skipping)
+        if(self.skipping):
+            
+            self._runscreen.sharedControl.setStyleSheet('QPushButton {background-color: orange; color: white;}')
+            '''
+            button = QtGui.QPushButton()
+            palette = self.button.palette()
+            role = self.button.backgroundRole() #choose whatever you like
+            palette.setColor(role, QColor('red'))
+            button.setPalette(palette)
+            self.button.setAutoFillBackground(True)
+            '''
+        else:
+            
+            self._runscreen.sharedControl.setStyleSheet('QPushButton {background-color: white; color: black;}')
 
 
     def callback(self,data):
