@@ -344,7 +344,7 @@ class ExperimentGUI(Plugin):
         #self.manager = self._runscreen.widget.frame.getManager()
         #TODO eliminate this button
         self.skipping=False
-        self._runscreen.skipCommands.pressed.connect(self.skipping)
+        self._runscreen.skipCommands.pressed.connect(self.start_skipping)
 
 #        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_advanced_options)
 
@@ -818,7 +818,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.accessTeleop.setText(button_string)
         
     #TODO Eliminate this command
-    def skipping(self):
+    def start_skipping(self):
         self.skipping=not(self.skipping)
         if(self.skipping):
             
