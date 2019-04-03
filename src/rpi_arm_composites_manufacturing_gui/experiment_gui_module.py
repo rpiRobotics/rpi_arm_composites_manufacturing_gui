@@ -482,7 +482,7 @@ class ExperimentGUI(Plugin):
 
     def _next_plan(self):
     #TODO: Disable previous plan if planListIndex==2 or 4
-        if(not(skipping)):
+        if(not(self.skipping)):
             self._runscreen.nextPlan.setDisabled(True)
             self._runscreen.previousPlan.setDisabled(True)
             self._runscreen.resetToHome.setDisabled(True)
