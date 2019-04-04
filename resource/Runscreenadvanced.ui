@@ -490,6 +490,16 @@ Control</string>
      </item>
     </layout>
    </item>
+   <item>
+    <widget class="QLineEdit" name="readout"/>
+   </item>
+   <item>
+    <widget class="QPushButton" name="skipCommands">
+     <property name="text">
+      <string>Skip Commands</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <resources/>

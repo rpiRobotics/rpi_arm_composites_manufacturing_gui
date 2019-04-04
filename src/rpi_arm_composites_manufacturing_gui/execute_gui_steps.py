@@ -37,6 +37,7 @@ class GUI_Step_Executor(QObject):
         self.target_index=-1
         self.target=None
         self.error=None
+        self.state=None
         self.gui_state_pub = rospy.Publisher("GUI_state", ProcessState, queue_size=100, latch=True)
         self.controller_mode = ControllerMode.MODE_AUTO_TRAJECTORY
         #rospy.Subscriber("process_state",ProcessState,self._next_command)
@@ -49,6 +50,7 @@ class GUI_Step_Executor(QObject):
         
         """
         rospy.loginfo("Feedback_receive_function")
+        self.recover_from_pause=True
         self.error=result.error_msg
         self.error_signal.emit()
         
@@ -77,6 +79,7 @@ class GUI_Step_Executor(QObject):
             if(self.recover_from_pause):
                 return
             self.current_command+=1
+            self.state=self.execute_states[self.current_state][self.current_command]
             rospy.loginfo("current state %i"%self.current_state)
             rospy.loginfo("current command %i"%self.current_command)
             if(not(self.current_command>=len(self.execute_states[self.current_state]))):
@@ -125,6 +128,7 @@ class GUI_Step_Executor(QObject):
             self.recover_from_pause=False
 
         self.current_command=self.start_step
+        self.state=self.execute_states[self.current_state][self.current_command]
         if(self.start_step==target_index):
             g=ProcessStepGoal(self.execute_states[steps_index][self.start_step], target, ControllerMode(self.controller_mode))
         else:

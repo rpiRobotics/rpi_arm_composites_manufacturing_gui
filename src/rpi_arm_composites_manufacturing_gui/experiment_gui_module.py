@@ -252,7 +252,10 @@ class ExperimentGUI(Plugin):
         # Get path to UI file which should be in the "resource" folder of this package
         self.welcomescreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'welcomeconnectionscreen.ui')
         self.runscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreen.ui')
+        self.skippingrunscreenui=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreenadvanced.ui')
         self.errorscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'errordiagnosticscreen.ui')
+        self.retry_button = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'images', 'undo.png')
+        self.play_button = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'images', 'play.png')
         self.rewound=False
         self.pre_reset_list_index=0
         # Extend the widget with all attributes and children from UI file
@@ -282,32 +285,28 @@ class ExperimentGUI(Plugin):
         self._welcomescreen.statusFormLayout.addWidget(self.forcetorqueled,2,0)
         self._welcomescreen.statusFormLayout.addWidget(self.overheadcameraled,4,0)
         self._welcomescreen.statusFormLayout.addWidget(self.grippercameraled,6,0)
-        self._runscreen.connectionLayout.addWidget(self.runscreenstatusled,0,1)
+        #self._runscreen.connectionLayout.addWidget(self.runscreenstatusled,0,1)
         #self._welcomescreen.robotConnectionWidget.addWidget(self.led)
         #consoleThread.finished.connect(app.exit)
 
         #####consoleThread.start()
-        self.rviz_starter=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'rviz_starter.py')
+        #self.rviz_starter=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'src', 'rpi_arm_composites_manufacturing_gui', 'rviz_starter.py')
 
         # Add widget to the user interface
         #context.add_widget(console)==QDialog.Accepted
             #context.add_widget(rqt_console)
-        self._runscreen.planList.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        for entry in self.plans:
-            listentry=QListWidgetItem(entry)
-            listentry.setFlags(Qt.ItemIsSelectable)
-            self._runscreen.planList.addItem(listentry)
+        #self._runscreen.planList.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        #for entry in self.plans:
+        #    listentry=QListWidgetItem(entry)
+        #    listentry.setFlags(Qt.ItemIsSelectable)
+        #    self._runscreen.planList.addItem(listentry)
 
         #self._runscreen.planList.item(0).setSelected(True)
         self.shared_control_enabled=False
+        self.advancedmode=False
         self.planListIndex=0
-        self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
-        self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-        self._runscreen.panelType.setText(self.panel_type)
-        self._runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
+        self.initialize_runscreen()
 
-        self._runscreen.panelType.setReadOnly(True)
-        self._runscreen.placementNestTarget.setReadOnly(True)
         self.commands_sent=False
         rospy.Subscriber("controller_state", controllerstate, self.callback)
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
@@ -316,16 +315,10 @@ class ExperimentGUI(Plugin):
         self.force_torque_plot_widget=QWidget()
         self.joint_angle_plot_widget=QWidget()
         self._welcomescreen.openConfig.clicked.connect(self._open_config_options)
-        #self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_login_prompt)
+        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_login_prompt)
         self._welcomescreen.toRunScreen.pressed.connect(self._to_run_screen)
-        self._runscreen.backToWelcome.pressed.connect(self._to_welcome_screen)
-        #self._runscreen.toErrorScreen.pressed.connect(self._to_error_screen)
-        self._runscreen.nextPlan.pressed.connect(self._next_plan)
-        self._runscreen.previousPlan.pressed.connect(self._previousPlan)
-        self._runscreen.resetToHome.pressed.connect(self._reset_position)
-        self._runscreen.stopPlan.pressed.connect(self._stopPlan)
-        self._runscreen.accessTeleop.pressed.connect(self.change_teleop_modes)
-        self._runscreen.sharedControl.pressed.connect(self.start_shared_control)
+        
+        self.errored=False
         #self._errordiagnosticscreen.openOverheadCameraView.pressed.connect(self._open_overhead_camera_view)
         #self._errordiagnosticscreen.openGripperCameraViews.pressed.connect(self._open_gripper_camera_views)
         self._errordiagnosticscreen.openForceTorqueDataPlot.pressed.connect(self._open_force_torque_data_plot)
@@ -344,9 +337,41 @@ class ExperimentGUI(Plugin):
         #self.manager = self._runscreen.widget.frame.getManager()
         #TODO eliminate this button
         self.skipping=False
-        self._runscreen.skipCommands.pressed.connect(self.start_skipping)
+        
 
 #        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_advanced_options)
+
+    def initialize_runscreen(self):
+        
+        
+        self._runscreen.connectionLayout.addWidget(self.runscreenstatusled,0,1)
+        self._runscreen.planList.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        for entry in self.plans:
+            listentry=QListWidgetItem(entry)
+            listentry.setFlags(Qt.ItemIsSelectable)
+            self._runscreen.planList.addItem(listentry)
+        
+        icon=QIcon()
+        icon.addPixmap(QPixmap(self.play_button))
+        self._runscreen.nextPlan.setIcon(icon)
+        self._runscreen.nextPlan.setIconSize(QSize(100,100))
+        self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+        self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
+        self._runscreen.panelType.setText(self.panel_type)
+        self._runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
+
+        self._runscreen.panelType.setReadOnly(True)
+        self._runscreen.placementNestTarget.setReadOnly(True)
+        self._runscreen.backToWelcome.pressed.connect(self._to_welcome_screen)
+        #self._runscreen.toErrorScreen.pressed.connect(self._to_error_screen)
+        self._runscreen.nextPlan.pressed.connect(self._next_plan)
+        self._runscreen.previousPlan.pressed.connect(self._previousPlan)
+        self._runscreen.resetToHome.pressed.connect(self._reset_position)
+        self._runscreen.stopPlan.pressed.connect(self._stopPlan)
+        self._runscreen.accessTeleop.pressed.connect(self.change_teleop_modes)
+        self._runscreen.sharedControl.pressed.connect(self.start_shared_control)
+        self._runscreen.stopPlan.setDisabled(True)
+        
 
     def led_change(self,led,state):
         led.setChecked(state)
@@ -389,6 +414,13 @@ class ExperimentGUI(Plugin):
     def _to_error_screen(self):
         self.stackedWidget.setCurrentIndex(2)
 
+    def _open_login_prompt(self):
+        if(self._login_prompt()):
+            loadUi(self.skippingrunscreenui, self._runscreen)
+            self.initialize_runscreen()
+            self._runscreen.skipCommands.pressed.connect(self.start_skipping)
+            self.advancedmode=True
+      
     def _login_prompt(self):
         self.loginprompt=UserAuthenticationWindow()
         if self.loginprompt.exec_():
@@ -482,12 +514,15 @@ class ExperimentGUI(Plugin):
 
     def _next_plan(self):
     #TODO: Disable previous plan if planListIndex==2 or 4
+        self.plan_list_reset()
         if(not(self.skipping)):
             self._runscreen.nextPlan.setDisabled(True)
             self._runscreen.previousPlan.setDisabled(True)
             self._runscreen.resetToHome.setDisabled(True)
+            self._runscreen.stopPlan.setDisabled(False)
             self.reset_teleop_button()
             #TODO Make it change color when in motion
+            
             
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
@@ -505,12 +540,13 @@ class ExperimentGUI(Plugin):
             #self._runscreen.planList.item(self.planListIndex).setSelected(True)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
+            
+            #errored
             if(self.rewound):
                 self.rewound=False
                 self._runscreen.previousPlan.setDisabled(False)
         else:
-            self._runscreen.planList.item(self.planListIndex).setForeground(Qt.darkGray)
-            self._runscreen.planList.item(self.planListIndex).setBackground(Qt.white)
+            
             self.planListIndex+=1
             #self._runscreen.planList.item(self.planListIndex).setSelected(True)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
@@ -618,14 +654,17 @@ class ExperimentGUI(Plugin):
         
         #g=GUIStepGoal("stop_plan", self.panel_type)
         #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
+        self.plan_list_reset()
         if(self.shared_control_enabled):
             self.start_shared_control()
         if(self.planListIndex!=0):
             self._runscreen.planList.item(self.planListIndex-1).setBackground(Qt.white)
             self._runscreen.planList.item(self.planListIndex-1).setForeground(Qt.darkGray)
-            self._runscreen.planList.item(self.planListIndex).setHidden(True)
+            
+        self._runscreen.planList.item(self.planListIndex).setHidden(True)
         self._runscreen.planList.item(self.planListIndex).setHidden(False)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+        self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
         self._runscreen.planList.item(self.planListIndex).setHidden(True)
         self._runscreen.planList.item(self.planListIndex).setHidden(False)
         self.step_executor._stopPlan()
@@ -633,6 +672,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
+        self._runscreen.stopPlan.setDisabled(True)
         
         self.reset_teleop_button()
 
@@ -640,6 +680,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.nextPlan.setDisabled(True)
         self._runscreen.previousPlan.setDisabled(True)
         self._runscreen.resetToHome.setDisabled(True)
+        self.plan_list_reset()
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
         self._runscreen.planList.item(self.planListIndex).setHidden(True)
@@ -653,7 +694,9 @@ class ExperimentGUI(Plugin):
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
         self._runscreen.planList.item(self.planListIndex).setHidden(True)
         self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        self._runscreen.stopPlan.setDisabled(False)
         self.rewound=True
+        #errored
         #self._runscreen.previousPlan.setDisabled(True)
         #g=GUIStepGoal("previous_plan", self.panel_type)
         #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive,done_cb=self._process_done)
@@ -662,44 +705,45 @@ class ExperimentGUI(Plugin):
     @pyqtSlot()
     def _feedback_receive(self):
         with self._lock:
+            self.errored=True
             messagewindow=VacuumConfirm()
             error_msg=self.step_executor.error
             confirm=QMessageBox.warning(messagewindow, 'Error', 'Operation failed with error:\n'+error_msg,QMessageBox.Ok,QMessageBox.Ok)
             self._runscreen.nextPlan.setDisabled(False)
             self._runscreen.previousPlan.setDisabled(False)
             self._runscreen.resetToHome.setDisabled(False)
-            if(self.planListIndex!=0):
-                #self._runscreen.planList.item(self.planListIndex-1).setSelected(False)
-                self._runscreen.planList.item(self.planListIndex-1).setForeground(Qt.darkGray)
-                self._runscreen.planList.item(self.planListIndex-1).setBackground(Qt.white)
-            else:
-                #self._runscreen.planList.item(self.pre_reset_list_index).setSelected(False)
-                self._runscreen.planList.item(self.pre_reset_list_index).setForeground(Qt.darkGray)
-                self._runscreen.planList.item(self.pre_reset_list_index).setBackground(Qt.white)
+            self._runscreen.stopPlan.setDisabled(True)
+            self.plan_list_reset()
+            
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.yellow)
             self._runscreen.planList.item(self.planListIndex).setHidden(True)
             self._runscreen.planList.item(self.planListIndex).setHidden(False)
+            if(self.rewound):
+                self.planListIndex+=1
+            else:
+                if('reset' in self.step_executor.state):
+                    self.planListIndex=self.pre_reset_list_index
+                elif('pickup_grab' not in self.step_executor.state and 'place' not in self.step_executor.state):
+                
+                    self.planListIndex-=1
+                    icon=QIcon()
+                    icon.addPixmap(QPixmap(self.retry_button))
+                    self._runscreen.nextPlan.setIcon(icon)
+                    self._runscreen.nextPlan.setIconSize(QSize(100,100))
+                else:
+                    self._runscreen.nextPlan.setDisabled(True)
+                    
+            
+            
 
 
 
     def process_state_set(self,data):
         #if(data.state!="moving"):
-        if(self.planListIndex!=0):
-            #self._runscreen.planList.item(self.planListIndex-1).setSelected(False)
-            self._runscreen.planList.item(self.planListIndex-1).setForeground(Qt.darkGray)
-            self._runscreen.planList.item(self.planListIndex-1).setBackground(Qt.white)
-            self._runscreen.planList.item(self.planListIndex).setHidden(True)
-            self._runscreen.planList.item(self.planListIndex).setHidden(False)
-        else:
-            #self._runscreen.planList.item(self.pre_reset_list_index).setSelected(False)
-            self._runscreen.planList.item(self.pre_reset_list_index).setForeground(Qt.darkGray)
-            self._runscreen.planList.item(self.pre_reset_list_index).setBackground(Qt.white)
-        if(self.rewound):
-            self._runscreen.planList.item(self.planListIndex+1).setForeground(Qt.darkGray)
-            self._runscreen.planList.item(self.planListIndex+1).setBackground(Qt.white)
+        self.plan_list_reset()
             
-            
+        self._runscreen.stopPlan.setDisabled(True)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.green)
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.white)
         self._runscreen.planList.item(self.planListIndex).setHidden(True)
@@ -709,18 +753,26 @@ class ExperimentGUI(Plugin):
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
+        if(self.errored):
+            icon=QIcon()
+            icon.addPixmap(QPixmap(self.play_button))
+            self._runscreen.nextPlan.setIcon(icon)
+            self._runscreen.nextPlan.setIconSize(QSize(100,100))
+            self.errored=False
         
 
     
 
-
+    #TODO gray out pause button, make retry button
 
     def _reset_position(self):
         messagewindow=VacuumConfirm()
         reply = QMessageBox.question(messagewindow, 'Path Verification',
                      'Proceed to Reset Position', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply==QMessageBox.Yes:
+            
             self.pre_reset_list_index=self.planListIndex
+            self._runscreen.stopPlan.setDisabled(False)
             self._runscreen.nextPlan.setDisabled(True)
             self._runscreen.previousPlan.setDisabled(True)
             self._runscreen.resetToHome.setDisabled(True)
@@ -739,6 +791,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.planList.item(self.planListIndex).setHidden(True)
             self._runscreen.planList.item(self.planListIndex).setHidden(False)
             #subprocess.Popen(['python', self.reset_code])
+            #errored
         else:
             rospy.loginfo("Reset Rejected")   
 
@@ -816,6 +869,14 @@ class ExperimentGUI(Plugin):
         #self.controller_commander.set_controller_mode(self.controller_commander.MODE_HALT,1,[],[])
         button_string=self.teleop_button_string+self.teleop_modes[self.current_teleop_mode]
         self._runscreen.accessTeleop.setText(button_string)
+        
+    def plan_list_reset(self):
+        for i in range(self._runscreen.planList.count()-1):
+            self._runscreen.planList.item(i).setForeground(Qt.darkGray)
+            self._runscreen.planList.item(i).setBackground(Qt.white)
+        self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        self._runscreen.planList.item(self.planListIndex).setHidden(False)
+            
         
     #TODO Eliminate this command
     def start_skipping(self):
@@ -940,8 +1001,8 @@ class ExperimentGUI(Plugin):
                 else:
                     self.led_change(self.robotconnectionled,True)
                     self.led_change(self.runscreenstatusled,True)
-                    
-                    self._runscreen.readout.setText(str(data.ft_wrench))
+                    if(self.advancedmode):
+                        self._runscreen.readout.setText(str(data.ft_wrench))
                 if(data.ft_wrench_valid=="False"):
                     self.stackedWidget.setCurrentIndex(0)
 
