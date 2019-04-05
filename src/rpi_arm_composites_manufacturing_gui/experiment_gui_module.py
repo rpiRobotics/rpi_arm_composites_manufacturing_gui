@@ -305,7 +305,7 @@ class ExperimentGUI(Plugin):
         self.shared_control_enabled=False
         self.advancedmode=False
         self.planListIndex=0
-        self.initialize_runscreen()
+        self.initialize_runscreen(self._runscreen)
 
         self.commands_sent=False
         rospy.Subscriber("controller_state", controllerstate, self.callback)
@@ -341,37 +341,37 @@ class ExperimentGUI(Plugin):
 
 #        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_advanced_options)
 
-    def initialize_runscreen(self):
+    def initialize_runscreen(self,runscreen):
         
         
-        self._runscreen.connectionLayout.addWidget(self.runscreenstatusled,0,1)
-        self._runscreen.planList.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        runscreen.connectionLayout.addWidget(self.runscreenstatusled,0,1)
+        runscreen.planList.setSelectionMode(QAbstractItemView.ExtendedSelection)
         for entry in self.plans:
             listentry=QListWidgetItem(entry)
             listentry.setFlags(Qt.ItemIsSelectable)
-            self._runscreen.planList.addItem(listentry)
+            runscreen.planList.addItem(listentry)
         
         icon=QIcon()
         icon.addPixmap(QPixmap(self.play_button))
-        self._runscreen.nextPlan.setIcon(icon)
-        self._runscreen.nextPlan.setIconSize(QSize(100,100))
-        self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
-        self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-        self._runscreen.panelType.setText(self.panel_type)
-        self._runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
+        runscreen.nextPlan.setIcon(icon)
+        runscreen.nextPlan.setIconSize(QSize(100,100))
+        runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
+        runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
+        runscreen.panelType.setText(self.panel_type)
+        runscreen.placementNestTarget.setText("Leeward Mid Panel Nest")
 
-        self._runscreen.panelType.setReadOnly(True)
-        self._runscreen.placementNestTarget.setReadOnly(True)
-        self._runscreen.backToWelcome.pressed.connect(self._to_welcome_screen)
+        runscreen.panelType.setReadOnly(True)
+        runscreen.placementNestTarget.setReadOnly(True)
+        runscreen.backToWelcome.pressed.connect(self._to_welcome_screen)
         #self._runscreen.toErrorScreen.pressed.connect(self._to_error_screen)
-        self._runscreen.nextPlan.pressed.connect(self._next_plan)
-        self._runscreen.previousPlan.pressed.connect(self._previousPlan)
-        self._runscreen.resetToHome.pressed.connect(self._reset_position)
-        self._runscreen.stopPlan.pressed.connect(self._stopPlan)
-        self._runscreen.accessTeleop.pressed.connect(self.change_teleop_modes)
-        self._runscreen.sharedControl.pressed.connect(self.start_shared_control)
-        self._runscreen.stopPlan.setDisabled(True)
-        self._runscreen.skipCommands.pressed.connect(self.start_skipping)
+        runscreen.nextPlan.pressed.connect(self._next_plan)
+        runscreen.previousPlan.pressed.connect(self._previousPlan)
+        runscreen.resetToHome.pressed.connect(self._reset_position)
+        runscreen.stopPlan.pressed.connect(self._stopPlan)
+        runscreen.accessTeleop.pressed.connect(self.change_teleop_modes)
+        runscreen.sharedControl.pressed.connect(self.start_shared_control)
+        runscreen.stopPlan.setDisabled(True)
+        runscreen.skipCommands.pressed.connect(self.start_skipping)
 
     def led_change(self,led,state):
         led.setChecked(state)
@@ -397,7 +397,7 @@ class ExperimentGUI(Plugin):
             self.messagewindow.setFixedSize(self.messagewindow.size())
             if self.messagewindow.exec_():
                 next_selected_panel=self.messagewindow.get_panel_selected()
-                if(next_selected_panel != None):
+                if(next_selected_panel != None): 
                     self.panel_type=next_selected_panel
                     self.placement_target=self.placement_targets[self.panel_type]
         
@@ -417,10 +417,11 @@ class ExperimentGUI(Plugin):
     def _open_login_prompt(self):
         if(self._login_prompt()):
             self.stackedWidget.removeWidget(self._runscreen)
-            loadUi(self.skippingrunscreenui, self._runscreen)
+            self._runscreenadvanced=QWidget()
+            loadUi(self.skippingrunscreenui, self._runscreenadvanced)
             
-            self.stackedWidget.addWidget(self._runscreen)
-            self.initialize_runscreen()
+            self.stackedWidget.addWidget(self._runscreenadvanced)
+            self.initialize_runscreen(self._runscreenadvanced)
             self._runscreen.skipCommands.pressed.connect(self.start_skipping)
             
             self.advancedmode=True
