@@ -204,7 +204,7 @@ class ExperimentGUI(Plugin):
         self._errordiagnosticscreen=QWidget()
         self.stackedWidget.addWidget(self._welcomescreen)
         self.stackedWidget.addWidget(self._runscreen)
-        self.stackedWidget.addWidget(self._errordiagnosticscreen)
+        #self.stackedWidget.addWidget(self._errordiagnosticscreen)
         #self._data_array=collections.deque(maxlen=500)
         self._proxy_model=message_proxy_model.MessageProxyModel()
         self._rospack=rospkg.RosPack()
@@ -251,7 +251,7 @@ class ExperimentGUI(Plugin):
         self.joint_angle_data=np.zeros((6,1))
         # Get path to UI file which should be in the "resource" folder of this package
         self.welcomescreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'welcomeconnectionscreen.ui')
-        self.runscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreen.ui')
+        self.runscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreenadvanced.ui')
         self.skippingrunscreenui=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreenadvanced.ui')
         self.errorscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'errordiagnosticscreen.ui')
         self.retry_button = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'images', 'undo.png')
@@ -326,7 +326,7 @@ class ExperimentGUI(Plugin):
         self._errordiagnosticscreen.backToRun.pressed.connect(self._to_run_screen)
         #self._runscreen.widget.frame=rviz.VisualizationFrame()
         #self._runscreen.widget.frame.setSplashPath( "" )
-
+        
 
         ## VisualizationFrame.initialize() must be called before
         ## VisualizationFrame.load().  In fact it must be called
@@ -371,7 +371,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.accessTeleop.pressed.connect(self.change_teleop_modes)
         self._runscreen.sharedControl.pressed.connect(self.start_shared_control)
         self._runscreen.stopPlan.setDisabled(True)
-        
+        self._runscreen.skipCommands.pressed.connect(self.start_skipping)
 
     def led_change(self,led,state):
         led.setChecked(state)
@@ -400,7 +400,7 @@ class ExperimentGUI(Plugin):
                 if(next_selected_panel != None):
                     self.panel_type=next_selected_panel
                     self.placement_target=self.placement_targets[self.panel_type]
-
+        
         self.stackedWidget.setCurrentIndex(1)
         self._runscreen.panelType.setText(self.panel_type)
         if(self.panel_type=='leeward_mid_panel'):
@@ -416,9 +416,13 @@ class ExperimentGUI(Plugin):
 
     def _open_login_prompt(self):
         if(self._login_prompt()):
+            self.stackedWidget.removeWidget(self._runscreen)
             loadUi(self.skippingrunscreenui, self._runscreen)
+            
+            self.stackedWidget.addWidget(self._runscreen)
             self.initialize_runscreen()
             self._runscreen.skipCommands.pressed.connect(self.start_skipping)
+            
             self.advancedmode=True
       
     def _login_prompt(self):
@@ -871,7 +875,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.accessTeleop.setText(button_string)
         
     def plan_list_reset(self):
-        for i in range(self._runscreen.planList.count()-1):
+        for i in range(self._runscreen.planList.count()):
             self._runscreen.planList.item(i).setForeground(Qt.darkGray)
             self._runscreen.planList.item(i).setBackground(Qt.white)
         self._runscreen.planList.item(self.planListIndex).setHidden(True)
@@ -883,7 +887,7 @@ class ExperimentGUI(Plugin):
         self.skipping=not(self.skipping)
         if(self.skipping):
             
-            self._runscreen.sharedControl.setStyleSheet('QPushButton {background-color: orange; color: white;}')
+            self._runscreen.skipCommands.setStyleSheet('QPushButton {background-color: orange; color: white;}')
             '''
             button = QtGui.QPushButton()
             palette = self.button.palette()
@@ -894,7 +898,7 @@ class ExperimentGUI(Plugin):
             '''
         else:
             
-            self._runscreen.sharedControl.setStyleSheet('QPushButton {background-color: white; color: black;}')
+            self._runscreen.skipCommands.setStyleSheet('QPushButton {background-color: white; color: black;}')
 
 
     def callback(self,data):

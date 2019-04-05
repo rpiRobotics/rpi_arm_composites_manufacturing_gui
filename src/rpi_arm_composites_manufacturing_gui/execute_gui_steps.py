@@ -78,8 +78,9 @@ class GUI_Step_Executor(QObject):
     	    rospy.loginfo("Next_command")
             if(self.recover_from_pause):
                 return
-            self.current_command+=1
             self.state=self.execute_states[self.current_state][self.current_command]
+            self.current_command+=1
+            
             rospy.loginfo("current state %i"%self.current_state)
             rospy.loginfo("current command %i"%self.current_command)
             if(not(self.current_command>=len(self.execute_states[self.current_state]))):
