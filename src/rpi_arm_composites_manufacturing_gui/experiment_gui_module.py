@@ -527,6 +527,7 @@ class ExperimentGUI(Plugin):
             self.reset_teleop_button()
             #TODO Make it change color when in motion
             
+        
             
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
@@ -544,7 +545,13 @@ class ExperimentGUI(Plugin):
             #self._runscreen.planList.item(self.planListIndex).setSelected(True)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-            
+            if(self.errored):
+                icon=QIcon()
+                icon.addPixmap(QPixmap(self.play_button))
+                self._runscreen.nextPlan.setIcon(icon)
+                self._runscreen.nextPlan.setIconSize(QSize(100,100))
+
+                self.errored=False
             #errored
             if(self.rewound):
                 self.rewound=False
@@ -757,12 +764,7 @@ class ExperimentGUI(Plugin):
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
-        if(self.errored):
-            icon=QIcon()
-            icon.addPixmap(QPixmap(self.play_button))
-            self._runscreen.nextPlan.setIcon(icon)
-            self._runscreen.nextPlan.setIconSize(QSize(100,100))
-            self.errored=False
+        rospy.loginfo("errored status:"+str(self.errored))
         
 
     
@@ -904,6 +906,17 @@ class ExperimentGUI(Plugin):
     def callback(self,data):
         #self._widget.State_info.append(data.mode)
         with self._lock:
+            if(self.stackedWidget.currentIndex()==0):
+                service_list=rosservice.get_service_list()
+                if('/overhead_camera/trigger' in service_list):
+                    self.led_change(self.overheadcameraled,True)
+                else:
+                    self.led_change(self.overheadcameraled,False)
+                if('/gripper_camera_2/trigger' in service_list):
+                    self.led_change(self.grippercameraled,True)
+                else:
+                    self.led_change(self.grippercameraled,False)
+
             if(self.stackedWidget.currentIndex()==2):
                 if(self.count>10):
                 #stringdata=str(data.mode)
@@ -997,16 +1010,18 @@ class ExperimentGUI(Plugin):
                      #   self.disconnectreturnoption=False
                     #else:
            #             self.disconnectreturnoption=True
-
-                    self.led_change(self.robotconnectionled,False)
-                    self.led_change(self.runscreenstatusled,False)
-                    self.error_recovery_button()
-                    self._runscreen.accessTeleop.setText("Recover from\n Error Code:"+str(data.mode.mode))
+                    if(data.mode.mode==-16 and "pickup_grab" in self.step_executor.state):
+                        pass
+                    else:
+                        self.led_change(self.robotconnectionled,False)
+                        self.led_change(self.runscreenstatusled,False)
+                        self.error_recovery_button()
+                        self._runscreen.accessTeleop.setText("Recover from\n Error Code:"+str(data.mode.mode))
                 else:
                     self.led_change(self.robotconnectionled,True)
                     self.led_change(self.runscreenstatusled,True)
-                    if(self.advancedmode):
-                        self._runscreen.readout.setText(str(data.ft_wrench))
+                    #if(self.advancedmode):
+                    self._runscreen.readout.setText(str(data.ft_wrench))
                 if(data.ft_wrench_valid=="False"):
                     self.stackedWidget.setCurrentIndex(0)
 
