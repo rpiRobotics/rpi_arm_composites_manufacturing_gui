@@ -707,6 +707,13 @@ class ExperimentGUI(Plugin):
         self._runscreen.planList.item(self.planListIndex).setHidden(False)
         self._runscreen.stopPlan.setDisabled(False)
         self.rewound=True
+        if(self.errored):
+            icon=QIcon()
+            icon.addPixmap(QPixmap(self.play_button))
+            self._runscreen.nextPlan.setIcon(icon)
+            self._runscreen.nextPlan.setIconSize(QSize(100,100))
+
+            self.errored=False
         #errored
         #self._runscreen.previousPlan.setDisabled(True)
         #g=GUIStepGoal("previous_plan", self.panel_type)
@@ -798,6 +805,13 @@ class ExperimentGUI(Plugin):
             self._runscreen.planList.item(self.planListIndex).setHidden(False)
             #subprocess.Popen(['python', self.reset_code])
             #errored
+            if(self.errored):
+                icon=QIcon()
+                icon.addPixmap(QPixmap(self.play_button))
+                self._runscreen.nextPlan.setIcon(icon)
+                self._runscreen.nextPlan.setIconSize(QSize(100,100))
+
+                self.errored=False
         else:
             rospy.loginfo("Reset Rejected")   
 
