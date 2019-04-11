@@ -128,8 +128,8 @@ class LEDIndicator(QAbstractButton):
         self.off_color_2 = color
 
 
-class VacuumConfirm(QDialog):
-    def __init__(self,parent=None):
+class VacuumConfirm(QWidget):
+    def __init__(self):
         super(VacuumConfirm,self).__init__()
 
 class ConsoleThread(QThread):
@@ -728,7 +728,7 @@ class ExperimentGUI(Plugin):
     def _feedback_receive(self):
         with self._lock:
             self.errored=True
-            messagewindow=QMessageBox()
+            messagewindow=VacuumConfirm()
             error_msg=self.step_executor.error
             confirm=QMessageBox.warning(messagewindow, 'Error', 'Operation failed with error:\n'+error_msg,QMessageBox.Ok,QMessageBox.Ok)
             
@@ -1095,9 +1095,9 @@ class ExperimentGUI(Plugin):
             #		self._widget.State_info.append(x)
 
     def _repaint(self):
-        with self._lock:
-            self._runscreen.planList.item(self.planListIndex).setHidden(True)
-            self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        
+        self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        self._runscreen.planList.item(self.planListIndex).setHidden(False)
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
