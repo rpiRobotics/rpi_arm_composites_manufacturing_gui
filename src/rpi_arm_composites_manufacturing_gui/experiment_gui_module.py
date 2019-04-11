@@ -128,8 +128,8 @@ class LEDIndicator(QAbstractButton):
         self.off_color_2 = color
 
 
-class VacuumConfirm(QWidget):
-    def __init__(self):
+class VacuumConfirm(QDialog):
+    def __init__(self,parent=None):
         super(VacuumConfirm,self).__init__()
 
 class ConsoleThread(QThread):
@@ -528,6 +528,7 @@ class ExperimentGUI(Plugin):
             self.reset_teleop_button()
             #TODO Make it change color when in motion
             
+        
             
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
@@ -545,7 +546,13 @@ class ExperimentGUI(Plugin):
             #self._runscreen.planList.item(self.planListIndex).setSelected(True)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-            
+            if(self.errored):
+                icon=QIcon()
+                icon.addPixmap(QPixmap(self.play_button))
+                self._runscreen.nextPlan.setIcon(icon)
+                self._runscreen.nextPlan.setIconSize(QSize(100,100))
+
+                self.errored=False
             #errored
             if(self.rewound):
                 self.rewound=False
@@ -666,12 +673,14 @@ class ExperimentGUI(Plugin):
             self._runscreen.planList.item(self.planListIndex-1).setBackground(Qt.white)
             self._runscreen.planList.item(self.planListIndex-1).setForeground(Qt.darkGray)
             
-        self._runscreen.planList.item(self.planListIndex).setHidden(True)
-        self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(False)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-        self._runscreen.planList.item(self.planListIndex).setHidden(True)
-        self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        
+        #self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        self.repaint_signal.emit()
         self.step_executor._stopPlan()
         self.recover_from_pause=True
         self._runscreen.nextPlan.setDisabled(False)
@@ -688,8 +697,8 @@ class ExperimentGUI(Plugin):
         self.plan_list_reset()
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-        self._runscreen.planList.item(self.planListIndex).setHidden(True)
-        self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(False)
         if(self.planListIndex==0):
             pass
         else:
@@ -697,10 +706,18 @@ class ExperimentGUI(Plugin):
         self.reset_teleop_button()
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-        self._runscreen.planList.item(self.planListIndex).setHidden(True)
-        self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        self.repaint_signal.emit()
         self._runscreen.stopPlan.setDisabled(False)
         self.rewound=True
+        if(self.errored):
+            icon=QIcon()
+            icon.addPixmap(QPixmap(self.play_button))
+            self._runscreen.nextPlan.setIcon(icon)
+            self._runscreen.nextPlan.setIconSize(QSize(100,100))
+
+            self.errored=False
         #errored
         #self._runscreen.previousPlan.setDisabled(True)
         #g=GUIStepGoal("previous_plan", self.panel_type)
@@ -711,9 +728,10 @@ class ExperimentGUI(Plugin):
     def _feedback_receive(self):
         with self._lock:
             self.errored=True
-            messagewindow=VacuumConfirm()
+            messagewindow=QMessageBox()
             error_msg=self.step_executor.error
             confirm=QMessageBox.warning(messagewindow, 'Error', 'Operation failed with error:\n'+error_msg,QMessageBox.Ok,QMessageBox.Ok)
+            
             self._runscreen.nextPlan.setDisabled(False)
             self._runscreen.previousPlan.setDisabled(False)
             self._runscreen.resetToHome.setDisabled(False)
@@ -722,8 +740,9 @@ class ExperimentGUI(Plugin):
             
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.yellow)
-            self._runscreen.planList.item(self.planListIndex).setHidden(True)
-            self._runscreen.planList.item(self.planListIndex).setHidden(False)
+            self.repaint_signal.emit()
+            #self._runscreen.planList.item(self.planListIndex).setHidden(True)
+            #self._runscreen.planList.item(self.planListIndex).setHidden(False)
             if(self.rewound):
                 self.planListIndex+=1
             else:
@@ -751,19 +770,14 @@ class ExperimentGUI(Plugin):
         self._runscreen.stopPlan.setDisabled(True)
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.green)
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.white)
-        self._runscreen.planList.item(self.planListIndex).setHidden(True)
-        self._runscreen.planList.item(self.planListIndex).setHidden(False)
-        #self.repaint_signal.emit()
+        #self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        self.repaint_signal.emit()
         
         self._runscreen.nextPlan.setDisabled(False)
         self._runscreen.previousPlan.setDisabled(False)
         self._runscreen.resetToHome.setDisabled(False)
-        if(self.errored):
-            icon=QIcon()
-            icon.addPixmap(QPixmap(self.play_button))
-            self._runscreen.nextPlan.setIcon(icon)
-            self._runscreen.nextPlan.setIconSize(QSize(100,100))
-            self.errored=False
+        #rospy.loginfo("errored status:"+str(self.errored))
         
 
     
@@ -783,8 +797,10 @@ class ExperimentGUI(Plugin):
             self._runscreen.resetToHome.setDisabled(True)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-            self._runscreen.planList.item(self.planListIndex).setHidden(True)
-            self._runscreen.planList.item(self.planListIndex).setHidden(False)
+
+            #self._runscreen.planList.item(self.planListIndex).setHidden(True)
+            #self._runscreen.planList.item(self.planListIndex).setHidden(False)
+            self.repaint_signal.emit()
             self.planListIndex=0
             #g=GUIStepGoal("reset", self.panel_type)
             #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
@@ -793,10 +809,17 @@ class ExperimentGUI(Plugin):
             #self._runscreen.planList.item(self.planListIndex).setSelected(True)
             self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
             self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
-            self._runscreen.planList.item(self.planListIndex).setHidden(True)
-            self._runscreen.planList.item(self.planListIndex).setHidden(False)
+            #self._runscreen.planList.item(self.planListIndex).setHidden(True)
+            #self._runscreen.planList.item(self.planListIndex).setHidden(False)
             #subprocess.Popen(['python', self.reset_code])
             #errored
+            if(self.errored):
+                icon=QIcon()
+                icon.addPixmap(QPixmap(self.play_button))
+                self._runscreen.nextPlan.setIcon(icon)
+                self._runscreen.nextPlan.setIconSize(QSize(100,100))
+
+                self.errored=False
         else:
             rospy.loginfo("Reset Rejected")   
 
@@ -850,7 +873,8 @@ class ExperimentGUI(Plugin):
             self.step_executor.error_signal.emit()
                 
             
-            
+    
+                
             
 
     def set_controller_mode(self,mode,speed_scalar=1.0,ft_bias=[], ft_threshold=[]):
@@ -879,8 +903,9 @@ class ExperimentGUI(Plugin):
         for i in range(self._runscreen.planList.count()):
             self._runscreen.planList.item(i).setForeground(Qt.darkGray)
             self._runscreen.planList.item(i).setBackground(Qt.white)
-        self._runscreen.planList.item(self.planListIndex).setHidden(True)
-        self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        self.repaint_signal.emit()
+        #self._runscreen.planList.item(self.planListIndex).setHidden(True)
+        #self._runscreen.planList.item(self.planListIndex).setHidden(False)
             
         
     #TODO Eliminate this command
@@ -905,6 +930,17 @@ class ExperimentGUI(Plugin):
     def callback(self,data):
         #self._widget.State_info.append(data.mode)
         with self._lock:
+            if(self.stackedWidget.currentIndex()==0):
+                service_list=rosservice.get_service_list()
+                if('/overhead_camera/trigger' in service_list):
+                    self.led_change(self.overheadcameraled,True)
+                else:
+                    self.led_change(self.overheadcameraled,False)
+                if('/gripper_camera_2/trigger' in service_list):
+                    self.led_change(self.grippercameraled,True)
+                else:
+                    self.led_change(self.grippercameraled,False)
+
             if(self.stackedWidget.currentIndex()==2):
                 if(self.count>10):
                 #stringdata=str(data.mode)
@@ -998,16 +1034,18 @@ class ExperimentGUI(Plugin):
                      #   self.disconnectreturnoption=False
                     #else:
            #             self.disconnectreturnoption=True
-
-                    self.led_change(self.robotconnectionled,False)
-                    self.led_change(self.runscreenstatusled,False)
-                    self.error_recovery_button()
-                    self._runscreen.accessTeleop.setText("Recover from\n Error Code:"+str(data.mode.mode))
+                    if(data.mode.mode==-16 and "pickup_grab" in self.step_executor.state):
+                        pass
+                    else:
+                        self.led_change(self.robotconnectionled,False)
+                        self.led_change(self.runscreenstatusled,False)
+                        self.error_recovery_button()
+                        self._runscreen.accessTeleop.setText("Recover from\n Error Code:"+str(data.mode.mode))
                 else:
                     self.led_change(self.robotconnectionled,True)
                     self.led_change(self.runscreenstatusled,True)
-                    if(self.advancedmode):
-                        self._runscreen.readout.setText(str(data.ft_wrench))
+                    #if(self.advancedmode):
+                    self._runscreen.readout.setText(str(data.ft_wrench))
                 if(data.ft_wrench_valid=="False"):
                     self.stackedWidget.setCurrentIndex(0)
 
@@ -1057,7 +1095,9 @@ class ExperimentGUI(Plugin):
             #		self._widget.State_info.append(x)
 
     def _repaint(self):
-        self._runscreen.planList.repaint()
+        with self._lock:
+            self._runscreen.planList.item(self.planListIndex).setHidden(True)
+            self._runscreen.planList.item(self.planListIndex).setHidden(False)
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
