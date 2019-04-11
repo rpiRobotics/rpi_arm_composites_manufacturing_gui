@@ -251,7 +251,7 @@ class ExperimentGUI(Plugin):
         self.joint_angle_data=np.zeros((6,1))
         # Get path to UI file which should be in the "resource" folder of this package
         self.welcomescreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'welcomeconnectionscreen.ui')
-        self.runscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreen.ui')
+        self.runscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreenadvanced.ui')
         self.skippingrunscreenui=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreenadvanced.ui')
         self.errorscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'errordiagnosticscreen.ui')
         self.retry_button = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'images', 'replay.png')
