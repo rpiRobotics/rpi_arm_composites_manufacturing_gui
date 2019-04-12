@@ -254,7 +254,7 @@ class ExperimentGUI(Plugin):
         self.runscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreenadvanced.ui')
         self.skippingrunscreenui=os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'Runscreenadvanced.ui')
         self.errorscreenui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'errordiagnosticscreen.ui')
-        self.retry_button = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'images', 'replay.png')
+        self.retry_button = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'images', 'retry.png')
         self.play_button = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'images', 'play.png')
         self.rewound=False
         self.pre_reset_list_index=0
@@ -748,7 +748,7 @@ class ExperimentGUI(Plugin):
             else:
                 if('reset' in self.step_executor.state):
                     self.planListIndex=self.pre_reset_list_index
-                elif('pickup_grab' not in self.step_executor.state and 'place' not in self.step_executor.state):
+                elif('pickup_grab' not in self.step_executor.state and 'gripper' not in self.step_executor.state):
                 
                     self.planListIndex-=1
                     icon=QIcon()
