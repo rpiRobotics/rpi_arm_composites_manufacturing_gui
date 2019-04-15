@@ -735,7 +735,8 @@ class ExperimentGUI(Plugin):
            
             error_msg='Operation failed with error:\n'+self.step_executor.error
             confirm=QMessageBox.warning(messagewindow, 'Error',error_msg,QMessageBox.Ok,QMessageBox.Ok)
-            messagewindow.informativeText.setFont(f)
+            #messagewindow.informativeText.setFont(f)
+            
             self._runscreen.nextPlan.setDisabled(False)
             self._runscreen.previousPlan.setDisabled(False)
             self._runscreen.resetToHome.setDisabled(False)
