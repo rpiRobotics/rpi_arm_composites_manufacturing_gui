@@ -155,6 +155,7 @@ class RQTPlotWindow(QMainWindow):
 
 class ExperimentGUI(Plugin):
     repaint_signal= pyqtSignal()
+    LED_change_signal=pyqtSignal()
     
     def __init__(self, context):
         super(ExperimentGUI, self).__init__(context)
@@ -335,7 +336,7 @@ class ExperimentGUI(Plugin):
         ## which is the central class of RViz.
         #self._runscreen.widget.frame.initialize()
         #self.manager = self._runscreen.widget.frame.getManager()
-        #TODO eliminate this button
+        
         self.skipping=False
         
 
@@ -518,7 +519,7 @@ class ExperimentGUI(Plugin):
         subprocess.call(["xdotool", "search", "--name", "rviz", "windowraise"])
 
     def _next_plan(self):
-    #TODO: Disable previous plan if planListIndex==2 or 4
+    
         self.plan_list_reset()
         if(not(self.skipping)):
             self._runscreen.nextPlan.setDisabled(True)
@@ -526,7 +527,7 @@ class ExperimentGUI(Plugin):
             self._runscreen.resetToHome.setDisabled(True)
             self._runscreen.stopPlan.setDisabled(False)
             self.reset_teleop_button()
-            #TODO Make it change color when in motion
+            
             
         
             
@@ -536,6 +537,9 @@ class ExperimentGUI(Plugin):
                 self.planListIndex=0
             elif(self.recover_from_pause):
                 self.recover_from_pause=False
+                #TODO test this
+                if(self.errored):
+                    self.planListIndex+=1
             else:
                 self.planListIndex+=1
             #g=GUIStepGoal(self.gui_execute_states[self.planListIndex], self.panel_type)
@@ -729,12 +733,18 @@ class ExperimentGUI(Plugin):
         with self._lock:
             
             self.errored=True
-            f=QFont("Arial", 20)
-            f.setBold(False)
-            messagewindow=VacuumConfirm()
-           
+            
+            messagewindow=QMessageBox()
+            messagewindow.setStyleSheet("QMessageBox{background: rgb(255,255,255);  border: none;font-family: Arial; font-style: normal;  font-size: 20pt; color: #000000 ; }")
+            button=QPushButton("Continue")
+            button.setStyleSheet('QPushButton {font-family:Arial;font-style:normal;font-size:20pt;}')
             error_msg='Operation failed with error:\n'+self.step_executor.error
-            confirm=QMessageBox.warning(messagewindow, 'Error',error_msg,QMessageBox.Ok,QMessageBox.Ok)
+            messagewindow.setText(error_msg)
+            messagewindow.addButton(button,QMessageBox.AcceptRole)
+            ret = messagewindow.exec_()
+            #confirm=QMessageBox.warning(messagewindow, 'Error',error_msg)
+            
+            
             #messagewindow.informativeText.setFont(f)
             
             self._runscreen.nextPlan.setDisabled(False)
@@ -787,12 +797,24 @@ class ExperimentGUI(Plugin):
 
     
 
-    #TODO gray out pause button, make retry button
+    
 
     def _reset_position(self):
-        messagewindow=VacuumConfirm()
-        reply = QMessageBox.question(messagewindow, 'Path Verification',
-                     'Proceed to Reset Position', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        messagewindow=QMessageBox()
+        
+        messagewindow.setStyleSheet("QMessageBox{background: rgb(255,255,255);  border: none;font-family: Arial; font-style: normal;  font-size: 20pt; color: #000000 ; }")
+        yesbutton=QPushButton("Yes")
+        nobutton=QPushButton("No")
+        yesbutton.setStyleSheet('QPushButton {font-family:Arial;font-style:normal;font-size:20pt;}')
+        nobutton.setStyleSheet('QPushButton {font-family:Arial;font-style:normal;font-size:20pt;}')
+        
+        messagewindow.setText('Proceed to Reset Position?')
+        messagewindow.addButton(yesbutton,QMessageBox.YesRole)
+        messagewindow.addButton(nobutton,QMessageBox.NoRole)
+        reply = messagewindow.exec_()
+        #messagewindow=VacuumConfirm()
+        #reply = QMessageBox.question(messagewindow, 'Path Verification',
+                     #'Proceed to Reset Position', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply==QMessageBox.Yes:
             
             self.pre_reset_list_index=self.planListIndex
@@ -913,7 +935,7 @@ class ExperimentGUI(Plugin):
         #self._runscreen.planList.item(self.planListIndex).setHidden(False)
             
         
-    #TODO Eliminate this command
+    
     def start_skipping(self):
         self.skipping=not(self.skipping)
         if(self.skipping):
@@ -937,11 +959,11 @@ class ExperimentGUI(Plugin):
         with self._lock:
             if(self.stackedWidget.currentIndex()==0):
                 service_list=rosservice.get_service_list()
-                if('/overhead_camera/trigger' in service_list):
+                if('/overhead_camera/camera_trigger' in service_list):
                     self.led_change(self.overheadcameraled,True)
                 else:
                     self.led_change(self.overheadcameraled,False)
-                if('/gripper_camera_2/trigger' in service_list):
+                if('/gripper_camera_2/camera_trigger' in service_list):
                     self.led_change(self.grippercameraled,True)
                 else:
                     self.led_change(self.grippercameraled,False)

@@ -104,8 +104,7 @@ class GUI_Step_Executor(QObject):
             self._publish_state_message()
 
     def _execute_steps(self,steps_index, target="",target_index=-1):
-        #TODO Create separate thread for each execution step that waits until in_process is true
-        #TODO try with done cb
+        
         def send_action(goal):
             #self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive)
             #self.client_handle=self.client.send_goal(goal,feedback_cb=self._feedback_receive,done_cb=self._next_command)
@@ -154,8 +153,7 @@ class GUI_Step_Executor(QObject):
         #self.last_step=0
 
         
-        #TODO: using client.get_state can implemen action state recall to eliminate plan from moveit?
-    #TODO: make it so that next plan throws it back into automatic mode every time and then teleop switches to teleop mode and plans the next move
+      
     def _nextPlan(self,panel_type,planListIndex,panel_nest=None):
 
         rospy.loginfo("next plan planListIndex: "+str(planListIndex))
@@ -231,7 +229,7 @@ class GUI_Step_Executor(QObject):
         #g=ProcessStepGoal(self.execute_states[6][0], "")
         #self.client_handle=self.client.send_goal(g,feedback_cb=self._feedback_receive)
         client.cancel_all_goals()
-        #TODO make it so it checks previous goal handle has returned before reenabling
+        
         self.recover_from_pause=True
 
     def _publish_state_message(self):
