@@ -31,7 +31,7 @@ class PanelSelectorWindow(QDialog):
         #self.placement_nest_1=QGraphicsRectItem(100,60,100,100)
         #self.placement_nest_2=QGraphicsRectItem(100,-40,100,100)
         #self.pickup_nest_1=QGraphicsRectItem(-70,150,100,100)
-
+    
         self.continue_button.pressed.connect(self.pass_values)
 
         #self.graphics_scene.addItem(self.robot_representation)

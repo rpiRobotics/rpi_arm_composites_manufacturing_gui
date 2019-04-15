@@ -727,11 +727,15 @@ class ExperimentGUI(Plugin):
     @pyqtSlot()
     def _feedback_receive(self):
         with self._lock:
-            self.errored=True
-            messagewindow=VacuumConfirm()
-            error_msg=self.step_executor.error
-            confirm=QMessageBox.warning(messagewindow, 'Error', 'Operation failed with error:\n'+error_msg,QMessageBox.Ok,QMessageBox.Ok)
             
+            self.errored=True
+            f=QFont("Arial", 20)
+            f.setBold(False)
+            messagewindow=VacuumConfirm()
+           
+            error_msg='Operation failed with error:\n'+self.step_executor.error
+            confirm=QMessageBox.warning(messagewindow, 'Error',error_msg,QMessageBox.Ok,QMessageBox.Ok)
+            messagewindow.informativeText.setFont(f)
             self._runscreen.nextPlan.setDisabled(False)
             self._runscreen.previousPlan.setDisabled(False)
             self._runscreen.resetToHome.setDisabled(False)
