@@ -809,13 +809,15 @@ class ExperimentGUI(Plugin):
         nobutton.setStyleSheet('QPushButton {font-family:Arial;font-style:normal;font-size:20pt;}')
         
         messagewindow.setText('Proceed to Reset Position?')
-        messagewindow.addButton(yesbutton,QMessageBox.YesRole)
         messagewindow.addButton(nobutton,QMessageBox.NoRole)
+        messagewindow.addButton(yesbutton,QMessageBox.AcceptRole)
+        
         reply = messagewindow.exec_()
+        rospy.loginfo(str(reply))
         #messagewindow=VacuumConfirm()
         #reply = QMessageBox.question(messagewindow, 'Path Verification',
                      #'Proceed to Reset Position', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply==QMessageBox.Yes:
+        if reply==1:
             
             self.pre_reset_list_index=self.planListIndex
             self._runscreen.stopPlan.setDisabled(False)
