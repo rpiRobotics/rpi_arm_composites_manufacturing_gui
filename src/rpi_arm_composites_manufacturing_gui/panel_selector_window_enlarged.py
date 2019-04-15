@@ -19,22 +19,22 @@ class PanelSelectorWindow(QDialog):
         self.placement_chosen=None
         self.pickup_chosen=None
         self.panel=None
-        self.panelselectorui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'panelandplacementselectorpopup.ui')
+        self.panelselectorui = os.path.join(rospkg.RosPack().get_path('rpi_arm_composites_manufacturing_gui'), 'resource', 'panelselectorpopup.ui')
         loadUi(self.panelselectorui,self)
-        midlistentry=QListWidgetItem('Leeward Mid Panel')
-        midlistentry.setFlags(Qt.ItemIsSelectable)
-        tiplistentry=QListWidgetItem('Leeward Tip Panel')
-        tiplistentry.setFlags(Qt.ItemIsSelectable)
-        self.panelType.addItem(midlistentry)
-        self.panelType.addItem(tiplistentry)
-        self.panelType.itemSelectionChanged.connect(self.panel_selected)
+        self.midlistentry=QListWidgetItem('Leeward Mid Panel')
+        #self.midlistentry.setFlags(Qt.ItemIsSelectable)
+        self.tiplistentry=QListWidgetItem('Leeward Tip Panel')
+        #self.tiplistentry.setFlags(Qt.ItemIsSelectable)
+        self.panelList.addItem(self.midlistentry)
+        self.panelList.addItem(self.tiplistentry)
+        self.panelList.itemSelectionChanged.connect(self.panel_selected)
         #self.graphics_scene=QGraphicsScene(self.workspaceView)
         #self.robot_representation=QGraphicsEllipseItem(-50,0,100,100)
         #self.robot_representation.setBrush(QColor(255,170,0,255))
         #self.placement_nest_1=QGraphicsRectItem(100,60,100,100)
         #self.placement_nest_2=QGraphicsRectItem(100,-40,100,100)
         #self.pickup_nest_1=QGraphicsRectItem(-70,150,100,100)
-        self.panelType.item(0).setSelected(True)
+        self.panelList.item(0).setSelected(True)
         
         self.continue_button.pressed.connect(self.pass_values)
 
@@ -57,10 +57,10 @@ class PanelSelectorWindow(QDialog):
     def get_placement_selected(self):
         return self.placement_chosen
 
-    def panel_selected(self,panel_index):
-        if(midlistentry.isSelected()):
+    def panel_selected(self):
+        if(self.midlistentry.isSelected()):
             self.panel="leeward_mid_panel"
-        if(tiplistentry.isSelected()):
+        if(self.tiplistentry.isSelected()):
             self.panel="leeward_tip_panel"
     '''
     def mousePressEvent(self,event):

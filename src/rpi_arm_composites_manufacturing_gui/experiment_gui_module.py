@@ -30,7 +30,7 @@ from rqt_plot import plot
 import rosservice
 import rviz
 import safe_kinematic_controller.ros.commander as controller_commander_pkg
-from panel_selector_window import PanelSelectorWindow
+from panel_selector_window_enlarged import PanelSelectorWindow
 from user_authentication_window import UserAuthenticationWindow
 #TODO Integrate pyqtgraph into automatic package download
 import pyqtgraph as pg
