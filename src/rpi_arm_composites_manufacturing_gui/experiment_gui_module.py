@@ -317,6 +317,9 @@ class ExperimentGUI(Plugin):
         self.joint_angle_plot_widget=QWidget()
         self._welcomescreen.openConfig.clicked.connect(self._open_config_options)
         self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_login_prompt)
+        #hides these buttons from view since they are currently unused
+        self._welcomescreen.openConfig.setHidden(True)
+        self._welcomescreen.openAdvancedOptions.setHidden(True)
         self._welcomescreen.toRunScreen.pressed.connect(self._to_run_screen)
         
         self.errored=False
