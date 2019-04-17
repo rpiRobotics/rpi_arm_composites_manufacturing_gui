@@ -156,6 +156,8 @@ class RQTPlotWindow(QMainWindow):
 class ExperimentGUI(Plugin):
     repaint_signal= pyqtSignal()
     LED_change_signal=pyqtSignal()
+    callback_signal=pyqtSignal(controllerstate)
+    #signal name=pyqtSignal(datatype,datatype)
     
     def __init__(self, context):
         super(ExperimentGUI, self).__init__(context)
@@ -223,7 +225,9 @@ class ExperimentGUI(Plugin):
         
         self.step_executor=GUI_Step_Executor()
         self.step_executor.error_signal.connect(self._feedback_receive)
+        self.step_executor.success_signal.connect(self.process_state_set)
         self.repaint_signal.connect(self._repaint)
+        #self.callback_signal.connect(self.callback_gui)
         #self.step_executor.error_function=self._feedback_receive
         #Need this to pause motions
         self.process_client=actionlib.ActionClient('process_step', ProcessStepAction)
@@ -309,9 +313,9 @@ class ExperimentGUI(Plugin):
         self.initialize_runscreen(self._runscreen)
 
         self.commands_sent=False
-        rospy.Subscriber("controller_state", controllerstate, self.callback)
+        
         self._set_controller_mode=rospy.ServiceProxy("set_controller_mode",SetControllerMode)
-        rospy.Subscriber("GUI_state", ProcessState, self.process_state_set)
+        #rospy.Subscriber("GUI_state", ProcessState, self.process_state_set)
         #rospy.Subscriber('gui_error', String, self._feedback_receive())
         self.force_torque_plot_widget=QWidget()
         self.joint_angle_plot_widget=QWidget()
@@ -341,7 +345,10 @@ class ExperimentGUI(Plugin):
         #self.manager = self._runscreen.widget.frame.getManager()
         
         self.skipping=False
-        
+        self.callback_lock=threading.Lock()
+        self.callback_msg=None
+        rospy.Timer(rospy.Duration(0.1), self.callback_gui)
+        rospy.Subscriber("controller_state", controllerstate, self.callback)
 
 #        self._welcomescreen.openAdvancedOptions.pressed.connect(self._open_advanced_options)
 
@@ -541,8 +548,7 @@ class ExperimentGUI(Plugin):
             elif(self.recover_from_pause):
                 self.recover_from_pause=False
                 #TODO test this
-                if(self.errored):
-                    self.planListIndex+=1
+                
             else:
                 self.planListIndex+=1
             #g=GUIStepGoal(self.gui_execute_states[self.planListIndex], self.panel_type)
@@ -706,8 +712,11 @@ class ExperimentGUI(Plugin):
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
         #self._runscreen.planList.item(self.planListIndex).setHidden(True)
         #self._runscreen.planList.item(self.planListIndex).setHidden(False)
+        
         if(self.planListIndex==0):
             pass
+        elif(self.recover_from_pause):
+            self.recover_from_pause=False
         else:
             self.planListIndex-=1
         self.reset_teleop_button()
@@ -762,7 +771,7 @@ class ExperimentGUI(Plugin):
             #self._runscreen.planList.item(self.planListIndex).setHidden(True)
             #self._runscreen.planList.item(self.planListIndex).setHidden(False)
             if(self.rewound):
-                self.planListIndex+=1
+                self.rewound=False
             else:
                 if('reset' in self.step_executor.state):
                     self.planListIndex=self.pre_reset_list_index
@@ -781,8 +790,9 @@ class ExperimentGUI(Plugin):
 
 
 
-    def process_state_set(self,data):
+    def process_state_set(self):
         #if(data.state!="moving"):
+    
         self.plan_list_reset()
             
         self._runscreen.stopPlan.setDisabled(True)
@@ -799,6 +809,8 @@ class ExperimentGUI(Plugin):
         
 
     
+        
+            
 
     
 
@@ -960,168 +972,178 @@ class ExperimentGUI(Plugin):
 
 
     def callback(self,data):
+        with self.callback_lock:
+            self.callback_msg=data
+
+    def callback_gui(self,evt):
         #self._widget.State_info.append(data.mode)
-        with self._lock:
-            if(self.stackedWidget.currentIndex()==0):
-                service_list=rosservice.get_service_list()
-                if('/overhead_camera/camera_trigger' in service_list):
-                    self.led_change(self.overheadcameraled,True)
-                else:
-                    self.led_change(self.overheadcameraled,False)
-                if('/gripper_camera_2/camera_trigger' in service_list):
-                    self.led_change(self.grippercameraled,True)
-                else:
-                    self.led_change(self.grippercameraled,False)
+    
+        #print "callback " + str(time.time())
+        with self.callback_lock:
+            data = self.callback_msg
+            if data is None:
+                return
+    
+        if(self.stackedWidget.currentIndex()==0):
+            service_list=rosservice.get_service_list()
+            if('/overhead_camera/camera_trigger' in service_list):
+                self.led_change(self.overheadcameraled,True)
+            else:
+                self.led_change(self.overheadcameraled,False)
+            if('/gripper_camera_2/camera_trigger' in service_list):
+                self.led_change(self.grippercameraled,True)
+            else:
+                self.led_change(self.grippercameraled,False)
 
-            if(self.stackedWidget.currentIndex()==2):
-                if(self.count>10):
-                #stringdata=str(data.mode)
-                #freeBytes.acquire()
-                #####consoleData.append(str(data.mode))
-                    self._errordiagnosticscreen.consoleWidget_2.addItem(str(data.joint_position))
-                    self.count=0
-
-                    #print data.joint_position
-
-                self.count+=1
-                #self._widget.State_info.scrollToBottom()
-                #usedBytes.release()
-                #self._data_array.append(stringdata)
-                #print self._widget.State_info.count()
-                if(self._errordiagnosticscreen.consoleWidget_2.count()>200):
-
-                    item=self._errordiagnosticscreen.consoleWidget_2.takeItem(0)
-                    #print "Hello Im maxed out"
-                    del item
-
-            '''
-            if self.in_process:
-                if self.client.get_state() == actionlib.GoalStatus.PENDING or self.client.get_state() == actionlib.GoalStatus.ACTIVE:
-                    self._runscreen.nextPlan.setDisabled(True)
-                    self._runscreen.previousPlan.setDisabled(True)
-                    self._runscreen.resetToHome.setDisabled(True)
-                    rospy.loginfo("Pending")
-                elif self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
-                    self._runscreen.nextPlan.setDisabled(False)
-                    self._runscreen.previousPlan.setDisabled(False)
-                    self._runscreen.resetToHome.setDisabled(False)
-                    self.in_process=False
-                    rospy.loginfo("Succeeded")
-                elif self.client.get_state() == actionlib.GoalStatus.ABORTED:
-                    self.in_process=False
-                    if(not self.recover_from_pause):
-                        raise Exception("Process step failed and aborted")
-
-                elif self.client.get_state() == actionlib.GoalStatus.REJECTED:
-                    self.in_process=False
-                    raise Exception("Process step failed and Rejected")
-                elif self.client.get_state() == actionlib.GoalStatus.LOST:
-                    self.in_process=False
-                    raise Exception("Process step failed and lost")
-            '''
+        if(self.stackedWidget.currentIndex()==2):
             if(self.count>10):
+            #stringdata=str(data.mode)
+            #freeBytes.acquire()
+            #####consoleData.append(str(data.mode))
+                self._errordiagnosticscreen.consoleWidget_2.addItem(str(data.joint_position))
                 self.count=0
 
-                if(data.mode.mode<0):
-                    '''
-                    #self.stackedWidget.setCurrentIndex(2)
-                    if(data.mode.mode==-5 or data.mode.mode==-6):
-                        error_msg="Error mode %d : Controller is not synched or is in Invalid State" %data.mode.mode
-                        self._errordiagnosticscreen.errorLog.setPlainText(error_msg)
-                    if(data.mode.mode==-3 or data.mode.mode==-2):
-                        error_msg="Error mode %d : Controller operation or argument is invalid" %data.mode.mode
-                        self._errordiagnosticscreen.errorLog.setPlainText(error_msg)
+                #print data.joint_position
 
-                    if(data.mode.mode==-13 or data.mode.mode==-14):
-                        error_msg="Error mode %d : Sensor fault or communication Error" %data.mode.mode
-                        self._errordiagnosticscreen.errorLog.setPlainText(error_msg)
-                    if(data.mode.mode==-1):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -1: Internal system error detected")
-                    if(data.mode.mode==-4):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -4: Robot Fault detected")
-                    if(data.mode.mode==-7):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -7: Robot singularity detected, controller cannot perform movement")
-                    if(data.mode.mode==-8):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -8: Robot Setpoint could not be tracked, robot location uncertain")
-                    if(data.mode.mode==-9):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -9: Commanded Trajectory is invalid and cannot be executed. Please replan")
-                    if(data.mode.mode==-10):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -10: Trajectory Tracking Error detected, robot position uncertain, consider lowering speed of operation to improve tracking")
-                    if(data.mode.mode==-11):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -11: Robot trajectory aborted.")
-                    if(data.mode.mode==-12):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -12: Robot Collision Imminent, operation stopped to prevent damage")
-                    if(data.mode.mode==-15):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -15: Sensor state is invalid")
-                    if(data.mode.mode==-16):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -16: Force Torque Threshold Violation detected, stopping motion to prevent potential collisions/damage")
-                    if(data.mode.mode==-17):
-                        self._errordiagnosticscreen.errorLog.setPlainText("Error mode -17: Invalid External Setpoint given")
-                    '''
-                    #messagewindow=VacuumConfirm()
-                    #reply = QMessageBox.question(messagewindow, 'Connection Lost',
-                             #    'Robot Connection Lost, Return to Welcome Screen?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-                    #if reply==QMessageBox.Yes:
-                     #
-                     #   self.disconnectreturnoption=False
-                    #else:
-           #             self.disconnectreturnoption=True
-                    if(data.mode.mode==-16 and "pickup_grab" in self.step_executor.state):
-                        pass
-                    else:
-                        self.led_change(self.robotconnectionled,False)
-                        self.led_change(self.runscreenstatusled,False)
-                        self.error_recovery_button()
-                        self._runscreen.accessTeleop.setText("Recover from\n Error Code:"+str(data.mode.mode))
-                else:
-                    self.led_change(self.robotconnectionled,True)
-                    self.led_change(self.runscreenstatusled,True)
-                    #if(self.advancedmode):
-                    self._runscreen.readout.setText(str(data.ft_wrench))
-                if(data.ft_wrench_valid=="False"):
-                    self.stackedWidget.setCurrentIndex(0)
-
-                    self.led_change(self.forcetorqueled,False)
-                else:
-
-                    self.led_change(self.forcetorqueled,True)
-                #self.service_list=rosservice.get_service_list()
-                
-
-
-                #if(self.disconnectreturnoption and data.error_msg==""):
-                 #   self.disconnectreturnoption=False
             self.count+=1
+            #self._widget.State_info.scrollToBottom()
+            #usedBytes.release()
+            #self._data_array.append(stringdata)
+            #print self._widget.State_info.count()
+            if(self._errordiagnosticscreen.consoleWidget_2.count()>200):
 
-            if(not self.force_torque_plot_widget.isHidden()):
-                self.x_data=np.concatenate((self.x_data,[data.header.seq]))
-                incoming=np.array([data.ft_wrench.torque.x,data.ft_wrench.torque.y,data.ft_wrench.torque.z,data.ft_wrench.force.x,data.ft_wrench.force.y,data.ft_wrench.force.z]).reshape(6,1)
-                self.force_torque_data=np.concatenate((self.force_torque_data,incoming),axis=1)
+                item=self._errordiagnosticscreen.consoleWidget_2.takeItem(0)
+                #print "Hello Im maxed out"
+                del item
 
-                if(self.data_count>500):
-                    self.force_torque_data=self.force_torque_data[...,1:]
-                    self.x_data=self.x_data[1:]
-                    self.force_torque_plot_widget.setRange(xRange=(self.x_data[1],self.x_data[-1]))
-                else:
-                    self.data_count+=1
-                for i in range(6):
-                    self.plot_container[i].setData(self.x_data,self.force_torque_data[i,...])
-                self.force_torque_app.processEvents()
+        '''
+        if self.in_process:
+            if self.client.get_state() == actionlib.GoalStatus.PENDING or self.client.get_state() == actionlib.GoalStatus.ACTIVE:
+                self._runscreen.nextPlan.setDisabled(True)
+                self._runscreen.previousPlan.setDisabled(True)
+                self._runscreen.resetToHome.setDisabled(True)
+                rospy.loginfo("Pending")
+            elif self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
+                self._runscreen.nextPlan.setDisabled(False)
+                self._runscreen.previousPlan.setDisabled(False)
+                self._runscreen.resetToHome.setDisabled(False)
+                self.in_process=False
+                rospy.loginfo("Succeeded")
+            elif self.client.get_state() == actionlib.GoalStatus.ABORTED:
+                self.in_process=False
+                if(not self.recover_from_pause):
+                    raise Exception("Process step failed and aborted")
 
-            if(not self.joint_angle_plot_widget.isHidden()):
-                self.x_data=np.concatenate((self.x_data,[data.header.seq]))
-                incoming=np.array([data.ft_wrench.torque.x,data.ft_wrench.torque.y,data.ft_wrench.torque.z,data.ft_wrench.force.x,data.ft_wrench.force.y,data.ft_wrench.force.z]).reshape(7,1)
-                self.joint_angle_data=np.concatenate((self.joint_angle_data,incoming),axis=1)
+            elif self.client.get_state() == actionlib.GoalStatus.REJECTED:
+                self.in_process=False
+                raise Exception("Process step failed and Rejected")
+            elif self.client.get_state() == actionlib.GoalStatus.LOST:
+                self.in_process=False
+                raise Exception("Process step failed and lost")
+        '''
+        #if(self.count>10):
+        #    self.count=0
 
-                if(self.data_count>500):
-                    self.joint_angle_data=self.joint_angle_data[...,1:]
-                    self.x_data=self.x_data[1:]
-                    self.joint_angle_plot_widget.setRange(xRange=(self.x_data[1],self.x_data[-1]))
-                else:
-                    self.data_count+=1
-                for i in range(7):
-                    self.plot_container[i].setData(self.x_data,self.joint_angle_data[i,...])
-                self.joint_angle_app.processEvents()
+        if(data.mode.mode<0):
+            '''
+            #self.stackedWidget.setCurrentIndex(2)
+            if(data.mode.mode==-5 or data.mode.mode==-6):
+                error_msg="Error mode %d : Controller is not synched or is in Invalid State" %data.mode.mode
+                self._errordiagnosticscreen.errorLog.setPlainText(error_msg)
+            if(data.mode.mode==-3 or data.mode.mode==-2):
+                error_msg="Error mode %d : Controller operation or argument is invalid" %data.mode.mode
+                self._errordiagnosticscreen.errorLog.setPlainText(error_msg)
+
+            if(data.mode.mode==-13 or data.mode.mode==-14):
+                error_msg="Error mode %d : Sensor fault or communication Error" %data.mode.mode
+                self._errordiagnosticscreen.errorLog.setPlainText(error_msg)
+            if(data.mode.mode==-1):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -1: Internal system error detected")
+            if(data.mode.mode==-4):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -4: Robot Fault detected")
+            if(data.mode.mode==-7):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -7: Robot singularity detected, controller cannot perform movement")
+            if(data.mode.mode==-8):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -8: Robot Setpoint could not be tracked, robot location uncertain")
+            if(data.mode.mode==-9):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -9: Commanded Trajectory is invalid and cannot be executed. Please replan")
+            if(data.mode.mode==-10):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -10: Trajectory Tracking Error detected, robot position uncertain, consider lowering speed of operation to improve tracking")
+            if(data.mode.mode==-11):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -11: Robot trajectory aborted.")
+            if(data.mode.mode==-12):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -12: Robot Collision Imminent, operation stopped to prevent damage")
+            if(data.mode.mode==-15):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -15: Sensor state is invalid")
+            if(data.mode.mode==-16):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -16: Force Torque Threshold Violation detected, stopping motion to prevent potential collisions/damage")
+            if(data.mode.mode==-17):
+                self._errordiagnosticscreen.errorLog.setPlainText("Error mode -17: Invalid External Setpoint given")
+            '''
+            #messagewindow=VacuumConfirm()
+            #reply = QMessageBox.question(messagewindow, 'Connection Lost',
+                     #    'Robot Connection Lost, Return to Welcome Screen?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            #if reply==QMessageBox.Yes:
+             #
+             #   self.disconnectreturnoption=False
+            #else:
+   #             self.disconnectreturnoption=True
+            if(data.mode.mode==-16 and "pickup_grab" in self.step_executor.state):
+                pass
+            else:
+                self.led_change(self.robotconnectionled,False)
+                self.led_change(self.runscreenstatusled,False)
+                self.error_recovery_button()
+                self._runscreen.accessTeleop.setText("Recover from\n Error Code:"+str(data.mode.mode))
+        else:
+            self.led_change(self.robotconnectionled,True)
+            self.led_change(self.runscreenstatusled,True)
+            #if(self.advancedmode):
+            self._runscreen.readout.setText(str(data.ft_wrench))
+        if(data.ft_wrench_valid=="False"):
+            self.stackedWidget.setCurrentIndex(0)
+
+            self.led_change(self.forcetorqueled,False)
+        else:
+
+            self.led_change(self.forcetorqueled,True)
+            #self.service_list=rosservice.get_service_list()
+            
+
+
+            #if(self.disconnectreturnoption and data.error_msg==""):
+             #   self.disconnectreturnoption=False
+        #self.count+=1
+
+        if(not self.force_torque_plot_widget.isHidden()):
+            self.x_data=np.concatenate((self.x_data,[data.header.seq]))
+            incoming=np.array([data.ft_wrench.torque.x,data.ft_wrench.torque.y,data.ft_wrench.torque.z,data.ft_wrench.force.x,data.ft_wrench.force.y,data.ft_wrench.force.z]).reshape(6,1)
+            self.force_torque_data=np.concatenate((self.force_torque_data,incoming),axis=1)
+
+            if(self.data_count>500):
+                self.force_torque_data=self.force_torque_data[...,1:]
+                self.x_data=self.x_data[1:]
+                self.force_torque_plot_widget.setRange(xRange=(self.x_data[1],self.x_data[-1]))
+            else:
+                self.data_count+=1
+            for i in range(6):
+                self.plot_container[i].setData(self.x_data,self.force_torque_data[i,...])
+            self.force_torque_app.processEvents()
+
+        if(not self.joint_angle_plot_widget.isHidden()):
+            self.x_data=np.concatenate((self.x_data,[data.header.seq]))
+            incoming=np.array([data.ft_wrench.torque.x,data.ft_wrench.torque.y,data.ft_wrench.torque.z,data.ft_wrench.force.x,data.ft_wrench.force.y,data.ft_wrench.force.z]).reshape(7,1)
+            self.joint_angle_data=np.concatenate((self.joint_angle_data,incoming),axis=1)
+
+            if(self.data_count>500):
+                self.joint_angle_data=self.joint_angle_data[...,1:]
+                self.x_data=self.x_data[1:]
+                self.joint_angle_plot_widget.setRange(xRange=(self.x_data[1],self.x_data[-1]))
+            else:
+                self.data_count+=1
+            for i in range(7):
+                self.plot_container[i].setData(self.x_data,self.joint_angle_data[i,...])
+            self.joint_angle_app.processEvents()
                 #if(len(self._data_array)>10):
             #	for x in self._data_array:
             #		self._widget.State_info.append(x)

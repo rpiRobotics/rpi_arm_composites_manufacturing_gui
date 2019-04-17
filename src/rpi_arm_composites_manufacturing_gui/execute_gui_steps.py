@@ -17,6 +17,7 @@ from safe_kinematic_controller.msg import ControllerMode
 class GUI_Step_Executor(QObject):
     
     error_signal= pyqtSignal()
+    success_signal=pyqtSignal()
     
     def __init__(self):
         super(GUI_Step_Executor, self).__init__()
@@ -54,7 +55,7 @@ class GUI_Step_Executor(QObject):
         self.error=result.error_msg
         self.error_signal.emit()
         
-        self._publish_state_message()
+        self.success_signal.emit()
     
     #callback triggered by process_state message subscription that makes the next process action call 
     #def _next_command(self,data):
@@ -95,13 +96,13 @@ class GUI_Step_Executor(QObject):
                 self.client_handle=self.client.send_goal(g,done_cb=self._next_command)
                 #self.client.wait_for_result()
             else:
-                self._publish_state_message()
+                self.success_signal.emit()
         else:
             rospy.loginfo("Feedback_receive")
             self.error=result.error_msg
             self.error_signal.emit()
         
-            self._publish_state_message()
+            self.success_signal.emit()
 
     def _execute_steps(self,steps_index, target="",target_index=-1):
         
@@ -117,7 +118,7 @@ class GUI_Step_Executor(QObject):
         self.target=target
         #for step_num in range(resume_index,len(self.execute_states[steps_index])):
         if(self.recover_from_pause):
-            if(steps_index!=0):
+            if(steps_index!=0 and steps_index!=7):
                 if('plan' in self.execute_states[steps_index][self.current_command]):
                     self.start_step=self.current_command
                 else:
