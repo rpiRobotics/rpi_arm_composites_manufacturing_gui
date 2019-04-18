@@ -715,10 +715,11 @@ class ExperimentGUI(Plugin):
         
         if(self.planListIndex==0):
             pass
-        elif(self.recover_from_pause):
-            self.recover_from_pause=False
+        #elif(self.recover_from_pause):
+            
         else:
             self.planListIndex-=1
+            self.recover_from_pause=False
         self.reset_teleop_button()
         self._runscreen.planList.item(self.planListIndex).setForeground(Qt.red)
         self._runscreen.planList.item(self.planListIndex).setBackground(Qt.gray)
@@ -773,13 +774,12 @@ class ExperimentGUI(Plugin):
             if(self.rewound):
                 self.rewound=False
             else:
-		if(not self.recover_from_pause):
-		    pass
-                elif('reset' in self.step_executor.state):
+		
+                if('reset' in self.step_executor.state):
                     self.planListIndex=self.pre_reset_list_index
                 elif('pickup_grab' not in self.step_executor.state and 'gripper' not in self.step_executor.state):
-                
-                    self.planListIndex-=1
+                    if not (self.recover_from_pause):
+                        self.planListIndex-=1
                     icon=QIcon()
                     icon.addPixmap(QPixmap(self.retry_button))
                     self._runscreen.nextPlan.setIcon(icon)
