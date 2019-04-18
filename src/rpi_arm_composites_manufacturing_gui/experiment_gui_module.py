@@ -773,7 +773,9 @@ class ExperimentGUI(Plugin):
             if(self.rewound):
                 self.rewound=False
             else:
-                if('reset' in self.step_executor.state):
+		if(not self.recover_from_pause):
+		    pass
+                elif('reset' in self.step_executor.state):
                     self.planListIndex=self.pre_reset_list_index
                 elif('pickup_grab' not in self.step_executor.state and 'gripper' not in self.step_executor.state):
                 
